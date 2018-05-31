@@ -64,8 +64,8 @@ public class CassandraCQLClient extends DB {
 
   private static Logger logger = LoggerFactory.getLogger(CassandraCQLClient.class);
 
-  private static Cluster cluster = null;
-  private static Session session = null;
+  protected static Cluster cluster = null;
+  protected static Session session = null;
 
   private static ConcurrentMap<Set<String>, PreparedStatement> readStmts =
       new ConcurrentHashMap<Set<String>, PreparedStatement>();

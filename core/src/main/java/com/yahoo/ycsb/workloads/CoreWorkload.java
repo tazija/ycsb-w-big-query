@@ -84,7 +84,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
   
-  private List<String> fieldnames;
+  protected List<String> fieldnames;
 
   /**
    * The name of the property for the field length distribution. Options are "uniform", "zipfian"
@@ -169,7 +169,7 @@ public class CoreWorkload extends Workload {
    * Set to true if want to check correctness of reads. Must also
    * be set to true during loading phase to function.
    */
-  private boolean dataintegrity;
+  protected boolean dataintegrity;
 
   /**
    * The name of the property for the proportion of transactions that are reads.
@@ -491,7 +491,7 @@ public class CoreWorkload extends Workload {
   /**
    * Builds a value for a randomly chosen field.
    */
-  private HashMap<String, ByteIterator> buildSingleValue(String key) {
+  protected HashMap<String, ByteIterator> buildSingleValue(String key) {
     HashMap<String, ByteIterator> value = new HashMap<>();
 
     String fieldkey = fieldnames.get(fieldchooser.nextValue().intValue());
@@ -510,7 +510,7 @@ public class CoreWorkload extends Workload {
   /**
    * Builds values for all fields.
    */
-  private HashMap<String, ByteIterator> buildValues(String key) {
+  protected HashMap<String, ByteIterator> buildValues(String key) {
     HashMap<String, ByteIterator> values = new HashMap<>();
 
     for (String fieldkey : fieldnames) {
