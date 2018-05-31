@@ -35,3 +35,4 @@ requestdistribution=zipfian
 table=video
 fieldcount=4
 dataintegrity=true
+model=added_date:text;description:text;size:double;title:text;

@@ -36,8 +36,12 @@ import com.yahoo.ycsb.generator.ZipfianGenerator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The
@@ -77,18 +81,32 @@ import java.util.Random;
  */
 public class CoreWorkloadCustom extends CoreWorkload {
 
+  private static final BiFunction<String, Integer, String> PARSE = (field, type) -> field.split(":")[type];
+
+  /**
+   * The default value of a field.
+   */
+  private static final String FIELD_MODEL_PROPERTY_DEFAULT = "field1:field1;";
+
+  /**
+   * The name of property for the model.
+   */
+  private static final String FIELD_MODEL_PROPERTY = "model";
+
+  private static final Integer NAME = 0;
+  private static final Integer TYPE = 1;
+
+  private Map<String, String> model;
+
   @Override
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
-    fieldcount =
-        Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
-    fieldnames = new ArrayList<>();
+    fieldcount = Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
 
-    fieldnames.add("added_date");
-    fieldnames.add("description");
-    fieldnames.add("title");
-    fieldnames.add("size");
+    model = Stream.of(p.getProperty(FIELD_MODEL_PROPERTY, FIELD_MODEL_PROPERTY_DEFAULT).split(";"))
+        .collect(Collectors.toMap(s -> PARSE.apply(s, NAME), s ->  PARSE.apply(s, TYPE)));
+    fieldnames = new ArrayList<>(model.keySet());
 
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
