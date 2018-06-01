@@ -19,6 +19,7 @@ package com.yahoo.ycsb;
 
 import java.util.Map;
 import com.yahoo.ycsb.measurements.Measurements;
+import com.yahoo.ycsb.model.Type;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
 
@@ -204,6 +205,28 @@ public class DBWrapper extends DB {
   }
 
   /**
+   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
+   * record with the specified record key, overwriting any existing values with the same field name.
+   *
+   * @param table The name of the table
+   * @param key The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
+   * @return The result of the operation.
+   */
+  public Status update(String table, String key,
+                       Map<String, ByteIterator> values, Map<String, Type> model) {
+    try (final TraceScope span = tracer.newScope(scopeStringUpdate)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.update(table, key, values, model);
+      long en = System.nanoTime();
+      measure("UPDATE", res, ist, st, en);
+      measurements.reportStatus("UPDATE", res);
+      return res;
+    }
+  }
+
+  /**
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified
    * record key.
@@ -225,6 +248,30 @@ public class DBWrapper extends DB {
       return res;
     }
   }
+
+  /**
+   * Insert a record in the database. Any field/value pairs in the specified
+   * values HashMap will be written into the record with the specified
+   * record key.
+   *
+   * @param table The name of the table
+   * @param key The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
+   * @param model A HashMap of field/value pairs to detect type of each field.
+   * @return The result of the operation.
+   */
+  public Status insert(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
+    try (final TraceScope span = tracer.newScope(scopeStringInsert)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.insert(table, key, values, model);
+      long en = System.nanoTime();
+      measure("INSERT", res, ist, st, en);
+      measurements.reportStatus("INSERT", res);
+      return res;
+    }
+  }
+
 
   /**
    * Delete a record from the database.

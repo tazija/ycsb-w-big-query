@@ -25,22 +25,18 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.NumericByteIterator;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.model.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Cassandra 2.x CQL client.
@@ -53,38 +49,13 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
 
   private static Logger logger = LoggerFactory.getLogger(CassandraCQLClientCustom.class);
 
-  private static ConcurrentMap<Set<String>, PreparedStatement> readStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
-  private static ConcurrentMap<Set<String>, PreparedStatement> scanStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+
   private static ConcurrentMap<Set<String>, PreparedStatement> insertStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
+      new ConcurrentHashMap<>();
   private static ConcurrentMap<Set<String>, PreparedStatement> updateStmts =
-      new ConcurrentHashMap<Set<String>, PreparedStatement>();
-  private static AtomicReference<PreparedStatement> readAllStmt =
-      new AtomicReference<PreparedStatement>();
-  private static AtomicReference<PreparedStatement> scanAllStmt =
-      new AtomicReference<PreparedStatement>();
-  private static AtomicReference<PreparedStatement> deleteStmt =
-      new AtomicReference<PreparedStatement>();
-
-  private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
+      new ConcurrentHashMap<>();
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
-
-
-  private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
-
-  private static boolean debug = false;
-
   private static boolean trace = false;
-  /**
-   * Initialize any state for this DB. Called once per DB instance; there is one
-   * DB instance per client thread.
-   */
-  @Override
-  public void init() throws DBException {
-    super.init();
-  }
 
   /**
    * Insert a record in the database. Any field/value pairs in the specified
@@ -100,8 +71,7 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
    * @return Zero on success, a non-zero error code on error
    */
   @Override
-  public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    //System.out.println("key: " + key);
+  public Status insert(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
     try {
       Set<String> fields = values.keySet();
       PreparedStatement stmt = preparedStatementOnDemand(table, fields);
@@ -114,9 +84,11 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
       // Add fields
       ColumnDefinitions vars = stmt.getVariables();
       for (int i = 1; i < vars.size(); i++) {
-        if (vars.getName(i).equals("size")) {
+        switch (model.get(vars.getName(i))) {
+        case DOUBLE:
           boundStmt.setDouble(i, ((NumericByteIterator)values.get(vars.getName(i))).getDouble());
-        } else {
+          break;
+        default:
           boundStmt.setString(i, values.get(vars.getName(i)).toString());
         }
       }
@@ -170,43 +142,6 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
   }
 
   /**
-   * Cleanup any state for this DB.
-   * Called once per DB instance; there is one DB instance per client thread.
-   */
-  public void cleanup() throws DBException {
-    super.cleanup();
-  }
-
-  /**
-   * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return The result of the operation.
-   */
-  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    return super.read(table, key, fields, result);
-  }
-
-  /**
-   * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored
-   * in a HashMap.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return The result of the operation.
-   */
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields,
-                              Vector<HashMap<String, ByteIterator>> result) {
-    return super.scan(table, startkey, recordcount, fields, result);
-  }
-
-  /**
    * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
    * record with the specified record key, overwriting any existing values with the same field name.
    *
@@ -215,7 +150,8 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
    * @param values A HashMap of field/value pairs to update in the record
    * @return The result of the operation.
    */
-  public Status update(String table, String key, Map<String, ByteIterator> values) {
+  @Override
+  public Status update(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
 
     try {
       Set<String> fields = values.keySet();
@@ -239,7 +175,7 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
           stmt.enableTracing();
         }
 
-        PreparedStatement prevStmt = updateStmts.putIfAbsent(new HashSet(fields), stmt);
+        PreparedStatement prevStmt = updateStmts.putIfAbsent(new HashSet<>(fields), stmt);
         if (prevStmt != null) {
           stmt = prevStmt;
         }
@@ -251,9 +187,11 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
       ColumnDefinitions vars = stmt.getVariables();
       BoundStatement boundStmt = stmt.bind();
       for (int i = 0; i < vars.size() - 1; i++) {
-        if (vars.getName(i).equals("size")) {
+        switch (model.get(vars.getName(i))) {
+        case DOUBLE:
           boundStmt.setDouble(i, ((NumericByteIterator)values.get(vars.getName(i))).getDouble());
-        } else {
+          break;
+        default:
           boundStmt.setString(i, values.get(vars.getName(i)).toString());
         }
       }
@@ -269,16 +207,5 @@ public class CassandraCQLClientCustom extends CassandraCQLClient {
     }
 
     return Status.ERROR;
-  }
-
-  /**
-   * Delete a record from the database.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to delete.
-   * @return The result of the operation.
-   */
-  public Status delete(String table, String key) {
-    return super.delete(table, key);
   }
 }

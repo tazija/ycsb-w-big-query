@@ -19,10 +19,8 @@ package com.yahoo.ycsb.workloads;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.NumericByteIterator;
 import com.yahoo.ycsb.RandomByteIterator;
 import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.WorkloadException;
 import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
 import com.yahoo.ycsb.generator.CounterGenerator;
@@ -33,12 +31,12 @@ import com.yahoo.ycsb.generator.SequentialGenerator;
 import com.yahoo.ycsb.generator.SkewedLatestGenerator;
 import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
+import com.yahoo.ycsb.model.Type;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -96,7 +94,7 @@ public class CoreWorkloadCustom extends CoreWorkload {
   private static final Integer NAME = 0;
   private static final Integer TYPE = 1;
 
-  private Map<String, String> model;
+  private Map<String, Type> model;
 
   @Override
   public void init(Properties p) throws WorkloadException {
@@ -105,7 +103,9 @@ public class CoreWorkloadCustom extends CoreWorkload {
     fieldcount = Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
 
     model = Stream.of(p.getProperty(FIELD_MODEL_PROPERTY, FIELD_MODEL_PROPERTY_DEFAULT).split(";"))
-        .collect(Collectors.toMap(s -> PARSE.apply(s, NAME), s ->  PARSE.apply(s, TYPE)));
+        .collect(Collectors.toMap(s -> PARSE.apply(s, NAME), s -> Type.valueOf(PARSE.apply(s, TYPE))));
+    System.out.println(model);
+
     fieldnames = new ArrayList<>(model.keySet());
 
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
@@ -228,7 +228,7 @@ public class CoreWorkloadCustom extends CoreWorkload {
     Status status;
     int numOfRetries = 0;
     do {
-      status = db.insert(table, dbkey, values);
+      status = db.insert(table, dbkey, values, model);
       if (null != status && status.isOk()) {
         break;
       }
@@ -262,6 +262,41 @@ public class CoreWorkloadCustom extends CoreWorkload {
     return super.doTransaction(db, threadstate);
   }
 
+  @Override
+  public void doTransactionInsert(DB db) {
+    // choose the next key
+    long keynum = transactioninsertkeysequence.nextValue();
+
+    try {
+      String dbkey = buildKeyName(keynum);
+
+      HashMap<String, ByteIterator> values = buildValues(dbkey);
+      db.insert(table, dbkey, values, model);
+    } finally {
+      transactioninsertkeysequence.acknowledge(keynum);
+    }
+  }
+
+  @Override
+  public void doTransactionUpdate(DB db) {
+    // choose a random key
+    long keynum = nextKeynum();
+
+    String keyname = buildKeyName(keynum);
+
+    HashMap<String, ByteIterator> values;
+
+    if (writeallfields) {
+      // new data for all the fields
+      values = buildValues(keyname);
+    } else {
+      // update a random field
+      values = buildSingleValue(keyname);
+    }
+
+    db.update(table, keyname, values, model);
+  }
+
   /**
    * Cleanup the scenario. Called once, in the main client thread, after all operations have completed.
    */
@@ -278,19 +313,9 @@ public class CoreWorkloadCustom extends CoreWorkload {
     HashMap<String, ByteIterator> values = new HashMap<>();
 
     for (String fieldkey : fieldnames) {
-      ByteIterator data = null;
-      if (fieldkey.equals("added_date")) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-      }
-      if (fieldkey.equals("description")) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-      }
-      if (fieldkey.equals("title")) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-      }
-      if (fieldkey.equals("size")) {
-        data = new NumericByteIterator(new Random().nextDouble());
-      }
+      ByteIterator data;
+
+      data = model.get(fieldkey).getByteIterator(key, fieldkey, fieldlengthgenerator);
       values.put(fieldkey, data);
     }
     return values;
@@ -306,11 +331,7 @@ public class CoreWorkloadCustom extends CoreWorkload {
     String fieldkey = fieldnames.get(fieldchooser.nextValue().intValue());
     ByteIterator data;
     if (dataintegrity) {
-      if (!fieldkey.equals("size")) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-      } else {
-        data = new NumericByteIterator(new Random().nextDouble());
-      }
+      data = model.get(fieldkey).getByteIterator(key, fieldkey, fieldlengthgenerator);
     } else {
       // fill with random data
       data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
@@ -318,23 +339,5 @@ public class CoreWorkloadCustom extends CoreWorkload {
     value.put(fieldkey, data);
 
     return value;
-  }
-
-  /**
-   * Build a deterministic value given the key information.
-   */
-  private String buildDeterministicValue(String key, String fieldkey) {
-    int size = fieldlengthgenerator.nextValue().intValue();
-    StringBuilder sb = new StringBuilder(size);
-    sb.append(key);
-    sb.append(':');
-    sb.append(fieldkey);
-    while (sb.length() < size) {
-      sb.append(':');
-      sb.append(sb.toString().hashCode());
-    }
-    sb.setLength(size);
-
-    return sb.toString();
   }
 }

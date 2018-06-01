@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb;
 
+import com.yahoo.ycsb.model.Type;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -114,6 +116,20 @@ public abstract class DB {
   public abstract Status update(String table, String key, Map<String, ByteIterator> values);
 
   /**
+   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
+   * record with the specified record key, overwriting any existing values with the same field name.
+   *
+   * @param table The name of the table
+   * @param key The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
+   * @param model A HashMap of field/value pairs to detect type of each field.
+   * @return The result of the operation.
+   */
+  public Status update(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the
    * record with the specified record key.
    *
@@ -123,6 +139,20 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status insert(String table, String key, Map<String, ByteIterator> values);
+
+  /**
+   * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the
+   * record with the specified record key.
+   *
+   * @param table The name of the table
+   * @param key The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
+   * @param model A HashMap of field/value pairs to detect type of each field.
+   * @return The result of the operation.
+   */
+  public Status insert(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Delete a record from the database.
