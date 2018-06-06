@@ -104,7 +104,6 @@ public class CoreWorkloadCustom extends CoreWorkload {
 
     model = Stream.of(p.getProperty(FIELD_MODEL_PROPERTY, FIELD_MODEL_PROPERTY_DEFAULT).split(";"))
         .collect(Collectors.toMap(s -> PARSE.apply(s, NAME), s -> Type.valueOf(PARSE.apply(s, TYPE))));
-    System.out.println(model);
 
     fieldnames = new ArrayList<>(model.keySet());
 
