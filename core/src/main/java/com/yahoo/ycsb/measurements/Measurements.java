@@ -37,7 +37,8 @@ public class Measurements {
     HDRHISTOGRAM_AND_HISTOGRAM,
     HDRHISTOGRAM_AND_RAW,
     TIMESERIES,
-    RAW
+    RAW,
+    TIMESERIES_AND_CSV
   }
 
   public static final String MEASUREMENT_TYPE_PROPERTY = "measurementtype";
@@ -101,6 +102,9 @@ public class Measurements {
     case "raw":
       measurementType = MeasurementType.RAW;
       break;
+    case "timeseries+csv":
+      measurementType = MeasurementType.TIMESERIES_AND_CSV;
+      break;
     default:
       throw new IllegalArgumentException("unknown " + MEASUREMENT_TYPE_PROPERTY + "=" + mTypeString);
     }
@@ -139,6 +143,8 @@ public class Measurements {
       return new OneMeasurementTimeSeries(name, props);
     case RAW:
       return new OneMeasurementRaw(name, props);
+    case TIMESERIES_AND_CSV:
+      return new OneMeasurementTimeSeriesCsv(name, props);
     default:
       throw new AssertionError("Impossible to be here. Dead code reached. Bugs?");
     }
@@ -270,12 +276,15 @@ public class Measurements {
   public synchronized String getSummary() {
     String ret = "";
     for (OneMeasurement m : opToMesurementMap.values()) {
-      ret += m.getSummary() + " ";
+      ret += m.getSummary();
     }
     for (OneMeasurement m : opToIntendedMesurementMap.values()) {
-      ret += m.getSummary() + " ";
+      ret += m.getSummary();
     }
     return ret;
   }
 
+  public MeasurementType getMeasurementType() {
+    return measurementType;
+  }
 }

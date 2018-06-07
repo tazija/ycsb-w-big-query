@@ -24,14 +24,22 @@ import org.apache.htrace.core.HTraceConfiguration;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
 
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +76,23 @@ class StatusThread extends Thread {
   private double minLoadAvg = Double.MAX_VALUE;
   private long lastGCCount = 0;
   private long lastGCTime = 0;
+  private String statsExportFile;
+
+  /**
+   * Creates a new StatusThread without JVM stat tracking.
+   *
+   * @param completeLatch         The latch that each client thread will {@link CountDownLatch#countDown()}
+   *                              as they complete.
+   * @param clients               The clients to collect metrics from.
+   * @param label                 The label for the status.
+   * @param standardstatus        If true the status is printed to stdout in addition to stderr.
+   * @param statusIntervalSeconds The number of seconds between status updates.
+   * @param statsExportFile           Format of logs
+   */
+  public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+                      String label, boolean standardstatus, int statusIntervalSeconds, String statsExportFile) {
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, statsExportFile);
+  }
 
   /**
    * Creates a new StatusThread without JVM stat tracking.
@@ -81,7 +106,7 @@ class StatusThread extends Thread {
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds) {
-    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false);
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, "");
   }
 
   /**
@@ -97,7 +122,7 @@ class StatusThread extends Thread {
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds,
-                      boolean trackJVMStats) {
+                      boolean trackJVMStats, String statsExportFile) {
     this.completeLatch = completeLatch;
     this.clients = clients;
     this.label = label;
@@ -105,6 +130,7 @@ class StatusThread extends Thread {
     sleeptimeNs = TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
     measurements = Measurements.getMeasurements();
     this.trackJVMStats = trackJVMStats;
+    this.statsExportFile = statsExportFile;
   }
 
   /**
@@ -154,6 +180,26 @@ class StatusThread extends Thread {
    */
   private long computeStats(final long startTimeMs, long startIntervalMs, long endIntervalMs,
                             long lastTotalOps) {
+    Measurements.MeasurementType type = Measurements.getMeasurements().getMeasurementType();
+
+    if (type.equals(Measurements.MeasurementType.TIMESERIES_AND_CSV)) {
+      return computeStatsForTimeSeriesCsv(startTimeMs, startIntervalMs, endIntervalMs, lastTotalOps);
+    }
+
+    return computeStatsDefault(startTimeMs, startIntervalMs, endIntervalMs, lastTotalOps);
+  }
+
+  /**
+   * Computes and prints the stats.
+   *
+   * @param startTimeMs     The start time of the test.
+   * @param startIntervalMs The start time of this interval.
+   * @param endIntervalMs   The end time (now) for the interval.
+   * @param lastTotalOps    The last total operations count.
+   * @return The current operation count.
+   */
+  private long computeStatsDefault(final long startTimeMs, long startIntervalMs, long endIntervalMs,
+                            long lastTotalOps) {
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
 
     long totalops = 0;
@@ -194,6 +240,74 @@ class StatusThread extends Thread {
       System.out.println(msg);
     }
     return totalops;
+  }
+
+  /**
+   * Computes and prints the stats.
+   *
+   * @param startTimeMs     The start time of the test.
+   * @param startIntervalMs The start time of this interval.
+   * @param endIntervalMs   The end time (now) for the interval.
+   * @param lastTotalOps    The last total operations count.
+   * @return The current operation count.
+   */
+  private long computeStatsForTimeSeriesCsv(final long startTimeMs, long startIntervalMs, long endIntervalMs,
+                            long lastTotalOps) {
+
+    long totalops = 0;
+    long todoops = 0;
+
+    // Calculate the total number of operations completed.
+    for (ClientThread t : clients) {
+      totalops += t.getOpsDone();
+      todoops += t.getOpsTodo();
+    }
+
+
+    long interval = endIntervalMs - startTimeMs;
+    double throughput = 1000.0 * (((double) totalops) / (double) interval);
+    double curthroughput = 1000.0 * (((double) (totalops - lastTotalOps)) /
+        ((double) (endIntervalMs - startIntervalMs)));
+    long estremaining = (long) Math.ceil(todoops / throughput);
+
+
+    DecimalFormat d = new DecimalFormat("#.##");
+    StringBuilder msg = new StringBuilder().append(interval / 1000).append(";");
+    msg.append(totalops).append(";");
+
+    if (totalops != 0) {
+      msg.append(d.format(curthroughput)).append(";");
+    }
+
+    String common = msg.toString();
+    String[] summary = Measurements.getMeasurements().getSummary().split("/");
+    StringBuilder result = new StringBuilder();
+    for (String aSummary : summary) {
+      if (!aSummary.isEmpty()) {
+        result.append(common).append(aSummary).append(System.lineSeparator());
+      }
+    }
+
+
+    if (!statsExportFile.isEmpty()) {
+      writeToFile(result.toString());
+    } else {
+      System.out.print(result);
+    }
+
+    if (standardstatus) {
+      System.out.print(result);
+    }
+    return totalops;
+  }
+
+  private void writeToFile(String result) {
+    try(BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(statsExportFile, true)))) {
+      out.write(String.valueOf(result));
+      out.flush();
+    } catch (IOException e) {
+      System.err.println(e.getMessage());
+    }
   }
 
   /**
@@ -526,6 +640,16 @@ public final class Client {
     //not used
   }
 
+  /**
+   * Export statistics to file.
+   */
+  public static final String EXPORT_STATS_TO_FILE = "statsexportfile";
+
+  /**
+   * Export statistics to file.
+   */
+  public static final String DEFAULT_EXPORT_STATS_TO_FILE = "";
+
   public static final String DEFAULT_RECORD_COUNT = "0";
 
   /**
@@ -767,8 +891,11 @@ public final class Client {
       int statusIntervalSeconds = Integer.parseInt(props.getProperty("status.interval", "10"));
       boolean trackJVMStats = props.getProperty(Measurements.MEASUREMENT_TRACK_JVM_PROPERTY,
           Measurements.MEASUREMENT_TRACK_JVM_PROPERTY_DEFAULT).equals("true");
+
+      String statsExportFile = props.getProperty(EXPORT_STATS_TO_FILE, DEFAULT_EXPORT_STATS_TO_FILE);
+
       statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
-          trackJVMStats);
+          trackJVMStats, statsExportFile);
       statusthread.start();
     }
 

@@ -60,8 +60,8 @@ public class OneMeasurementTimeSeries extends OneMeasurement {
   private long totallatency = 0;
 
   //keep a windowed version of these stats for printing status
-  private int windowoperations = 0;
-  private long windowtotallatency = 0;
+  protected int windowoperations = 0;
+  protected long windowtotallatency = 0;
 
   private int min = -1;
   private int max = -1;

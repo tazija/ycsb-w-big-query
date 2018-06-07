@@ -23,16 +23,21 @@
 #   Request distribution: zipfian
 
 recordcount=1000
-operationcount=1000
+operationcount=10000000
 workload=com.yahoo.ycsb.workloads.CoreWorkloadCustom
 hosts=192.168.77.250
 readallfields=true
-readproportion=0.3
-updateproportion=0.2
-scanproportion=0.2
-insertproportion=0.3
+readproportion=0.5
+updateproportion=0
+scanproportion=0
+insertproportion=0.5
 requestdistribution=zipfian
-table=video1
+table=video
 fieldcount=4
 dataintegrity=true
-model=added_date1:DOUBLE;description:STRING;size:DOUBLE;title:STRING;
+model=added_date:STRING;description:STRING;size:DOUBLE;title:STRING;
+threadcount=1
+maxexecutiontime=30
+measurementtype=timeseries+csv
+exportfile=/work/YCSB/no.txt
+statsexportfile=/work/YCSB/test.csv
