@@ -25,7 +25,6 @@
 recordcount=1000
 operationcount=10000000
 workload=com.yahoo.ycsb.workloads.CoreWorkloadCustom
-hosts=192.168.77.250
 readallfields=true
 readproportion=0.5
 updateproportion=0
