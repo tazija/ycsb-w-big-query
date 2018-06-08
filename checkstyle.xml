@@ -121,7 +121,6 @@ LICENSE file.
             <property name="max" value="120"/>
         </module>
         <module name="MethodLength"/>
-        <module name="ParameterNumber"/>
 
 
         <!-- Checks for whitespace                               -->

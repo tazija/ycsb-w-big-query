@@ -77,6 +77,7 @@ class StatusThread extends Thread {
   private long lastGCCount = 0;
   private long lastGCTime = 0;
   private String statsExportFile;
+  private int threadcount = 1;
 
   /**
    * Creates a new StatusThread without JVM stat tracking.
@@ -90,8 +91,10 @@ class StatusThread extends Thread {
    * @param statsExportFile           Format of logs
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
-                      String label, boolean standardstatus, int statusIntervalSeconds, String statsExportFile) {
-    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, statsExportFile);
+                      String label, boolean standardstatus, int statusIntervalSeconds, String statsExportFile,
+                      int threadcount) {
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, statsExportFile,
+        threadcount);
   }
 
   /**
@@ -106,7 +109,7 @@ class StatusThread extends Thread {
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds) {
-    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, "");
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, "", 1);
   }
 
   /**
@@ -119,10 +122,12 @@ class StatusThread extends Thread {
    * @param standardstatus        If true the status is printed to stdout in addition to stderr.
    * @param statusIntervalSeconds The number of seconds between status updates.
    * @param trackJVMStats         Whether or not to track JVM stats.
+   * @param statsExportFile       ExportStatsToFile
+   * @param threadcount           Thread Count
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds,
-                      boolean trackJVMStats, String statsExportFile) {
+                      boolean trackJVMStats, String statsExportFile, int threadcount) {
     this.completeLatch = completeLatch;
     this.clients = clients;
     this.label = label;
@@ -131,6 +136,7 @@ class StatusThread extends Thread {
     measurements = Measurements.getMeasurements();
     this.trackJVMStats = trackJVMStats;
     this.statsExportFile = statsExportFile;
+    this.threadcount = threadcount;
   }
 
   /**
@@ -284,10 +290,9 @@ class StatusThread extends Thread {
     StringBuilder result = new StringBuilder();
     for (String aSummary : summary) {
       if (!aSummary.isEmpty()) {
-        result.append(common).append(aSummary).append(System.lineSeparator());
+        result.append(common).append(aSummary).append(";").append(threadcount).append(System.lineSeparator());
       }
     }
-
 
     if (!statsExportFile.isEmpty()) {
       writeToFile(result.toString());
@@ -895,7 +900,7 @@ public final class Client {
       String statsExportFile = props.getProperty(EXPORT_STATS_TO_FILE, DEFAULT_EXPORT_STATS_TO_FILE);
 
       statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
-          trackJVMStats, statsExportFile);
+          trackJVMStats, statsExportFile, threadcount);
       statusthread.start();
     }
 
