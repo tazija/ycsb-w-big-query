@@ -40,7 +40,7 @@ model=username:STRING;phone:STRING;email:STRING;age:DOUBLE;address:STRING;city:S
 fieldcount=8
 fieldsize=100
 
-couchbase.host=192.168.77.251
+couchbase.host=34.220.22.178
 couchbase.bucket=ycsb-workload-a
 couchbase.password=####provide_via_request_parameters
 

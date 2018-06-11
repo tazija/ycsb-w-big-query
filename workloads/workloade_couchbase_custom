@@ -48,7 +48,7 @@ model=thread_id:STRING;message_id:STRING;subject:STRING;body:STRING;sender:STRIN
 fieldcount=11
 fieldsize=100
 
-couchbase.host=192.168.77.251
+couchbase.host=34.220.22.178
 couchbase.bucket=ycsb-workload-e
 couchbase.password=####provide_via_request_parameters
 
