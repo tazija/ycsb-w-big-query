@@ -107,6 +107,7 @@ public class CoreWorkloadCustom extends CoreWorkload {
         .collect(Collectors.toMap(s -> PARSE.apply(s, NAME), s -> Type.valueOf(PARSE.apply(s, TYPE))));
 
     fieldnames = new ArrayList<>(model.keySet());
+    fieldcount = Math.min(this.fieldcount, this.fieldnames.size());
 
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
