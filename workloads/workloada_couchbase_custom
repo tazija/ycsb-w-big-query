@@ -50,4 +50,4 @@ couchbase.password=####provide_via_request_parameters
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/couchbase/workloada_couchbase_custom/log.txt
 statsexportfile=./results/4-nodes/couchbase/workloada_couchbase_custom/results.csv
-maxexecutiontime=120
+maxexecutiontime=600
