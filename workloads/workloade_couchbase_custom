@@ -28,7 +28,7 @@
 
 recordcount=1000
 operationcount=1000
-workload=com.yahoo.ycsb.workloads.CoreWorkload
+workload=com.yahoo.ycsb.workloads.CoreWorkloadCustom
 
 readallfields=true
 
@@ -43,8 +43,9 @@ maxscanlength=100
 
 scanlengthdistribution=uniform
 
-fieldnames=username,phone,email,age,address,city,state,country
-fieldcount=8
+fieldnames=thread_id,message_id, subject, body, sender, created_at, last_edited_at, parent_message, comments, replies, views
+model=thread_id:STRING;message_id:STRING;subject:STRING;body:STRING;sender:STRING;created_at:STRING;last_edited_at:STRING;parent_message:STRING;comments:STRING;replies:DOUBLE;views:DOUBLE;
+fieldcount=11
 fieldsize=100
 
 couchbase.host=192.168.77.251
