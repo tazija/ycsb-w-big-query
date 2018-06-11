@@ -32,7 +32,7 @@ fi
 for threads in 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180 190 200 210 220 230 240 250; do
  echo " >> Launching workload ${WORKLOAD} in ${threads} threads..."
 
- echo "mkdir -p ./results/4-nodes/couchbase/${WORKLOAD} && ./bin/ycsb run -s couchbase2 -P workloads/${WORKLOAD} -threads ${threads} -p statsexportfile=./results/4-nodes/couchbase/${WORKLOAD}/results.csv ${ARGS[@]}" #| sh
+ echo "mkdir -p ./results/4-nodes/couchbase/${WORKLOAD} && ./bin/ycsb run -s couchbase2 -P workloads/${WORKLOAD} -threads ${threads} -p statsexportfile=./results/4-nodes/couchbase/${WORKLOAD}/results.csv ${ARGS[@]}" | sh
 
  echo " << Finished workload ${WORKLOAD} execution in ${threads} threads!"
 done
