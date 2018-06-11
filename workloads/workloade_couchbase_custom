@@ -56,8 +56,8 @@ couchbase.password=####provide_via_request_parameters
 # ./bin/ycsb run -s couchbase2 -P workloads/workloade_couchbase_custom -threads 100 -p statsexportfile=./results/4-Nodes/couchbase/workloada/100_threads.csv
 
 measurementtype=timeseries+csv
-exportfile=./results/4-Nodes/couchbase/workloada/log.txt
-statsexportfile=./results/4-Nodes/couchbase/workloada/N_threads.csv
+exportfile=./results/4-Nodes/couchbase/workloade_couchbase_custom/log.txt
+statsexportfile=./results/4-nodes/couchbase/workloade_couchbase_custom/results.csv
 maxexecutiontime=120
 
 
