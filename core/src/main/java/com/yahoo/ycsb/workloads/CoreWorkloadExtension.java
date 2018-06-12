@@ -77,7 +77,7 @@ import java.util.stream.Stream;
  * order ("hashed") (default: hashed)
  * </ul>
  */
-public class CoreWorkloadCustom extends CoreWorkload {
+public class CoreWorkloadExtension extends CoreWorkload {
 
   private static final BiFunction<String, Integer, String> PARSE = (field, type) -> field.split(":")[type];
 
