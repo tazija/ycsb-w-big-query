@@ -191,6 +191,9 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         case DOUBLE:
           boundStmt.setDouble(i, ((NumericByteIterator)values.get(vars.getName(i))).getDouble());
           break;
+        case LONG:
+          boundStmt.setLong(i, ((NumericByteIterator)values.get(vars.getName(i))).getLong());
+          break;
         default:
           boundStmt.setString(i, values.get(vars.getName(i)).toString());
         }

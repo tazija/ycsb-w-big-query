@@ -27,7 +27,8 @@ import com.yahoo.ycsb.generator.NumberGenerator;
  */
 public enum Type {
   STRING,
-  DOUBLE;
+  DOUBLE,
+  LONG;
 
   public ByteIterator getByteIterator(String key, String fieldkey, NumberGenerator fieldlengthgenerator) {
     switch (this) {
@@ -35,6 +36,8 @@ public enum Type {
       return new NumericByteIterator(fieldlengthgenerator.nextValue().doubleValue());
     case STRING:
       return new StringByteIterator(buildDeterministicValue(key, fieldkey, fieldlengthgenerator));
+    case LONG:
+      return new NumericByteIterator(fieldlengthgenerator.nextValue().longValue());
     default:
       return new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
     }
