@@ -54,7 +54,7 @@ fi
 for threads in ${THREADS[@]}; do
  echo " >> Launching workload ${WORKLOAD} in ${threads} threads..."
 
- echo "mkdir -p ./results/4-nodes/couchbase/${WORKLOAD} && ./bin/ycsb run -s ${DB} -P workloads/${WORKLOAD} -threads ${threads} -p statsexportfile=./results/4-nodes/couchbase/${WORKLOAD}/results.csv ${ARGS[@]}" #| sh
+ echo "mkdir -p ./results/4-nodes/couchbase/${WORKLOAD} && ./bin/ycsb run -s ${DB} -P workloads/${WORKLOAD} -threads ${threads} -p statsexportfile=./results/4-nodes/couchbase/${WORKLOAD}/results.csv ${ARGS[@]}" | sh
 
  echo " << Finished workload ${WORKLOAD} execution in ${threads} threads!"
 done
