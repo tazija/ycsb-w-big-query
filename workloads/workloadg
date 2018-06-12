@@ -24,7 +24,7 @@
 
 recordcount=1000
 operationcount=10000000
-workload=com.yahoo.ycsb.workloads.CoreWorkloadCustom
+workload=com.yahoo.ycsb.workloads.CoreWorkloadExtension
 readallfields=true
 readproportion=0.5
 updateproportion=0

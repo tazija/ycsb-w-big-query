@@ -45,9 +45,9 @@ import java.util.concurrent.ConcurrentMap;
  *
  * @author cmatser
  */
-public class CassandraCQLClientCustom extends CassandraCQLClient {
+public class CassandraCQLClientExtension extends CassandraCQLClient {
 
-  private static Logger logger = LoggerFactory.getLogger(CassandraCQLClientCustom.class);
+  private static Logger logger = LoggerFactory.getLogger(CassandraCQLClientExtension.class);
 
 
   private static ConcurrentMap<Set<String>, PreparedStatement> insertStmts =
