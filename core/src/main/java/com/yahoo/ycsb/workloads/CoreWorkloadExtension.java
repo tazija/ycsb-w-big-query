@@ -84,8 +84,8 @@ public class CoreWorkloadExtension extends CoreWorkload {
   /**
    * The default value of a field.
    */
-  private static final String FIELD_MODEL_PROPERTY_DEFAULT = "field0:field0;field1:field1;field2:field2;" +
-      "field3:field3;field4:field4;field5:field5;field6:field6;field7:field7;field8:field8;field9:field9;";
+  private static final String FIELD_MODEL_PROPERTY_DEFAULT = "field0:STRING;field1:STRING;field2:STRING;" +
+      "field3:STRING;field4:STRING;field5:STRING;field6:STRING;field7:STRING;field8:STRING;field9:STRING;";
 
   /**
    * The name of property for the model.
