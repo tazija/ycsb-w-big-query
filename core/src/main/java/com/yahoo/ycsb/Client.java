@@ -17,9 +17,12 @@
 
 package com.yahoo.ycsb;
 
+import com.yahoo.ycsb.gcp.bigquery.BigQueryApi;
+import com.yahoo.ycsb.gcp.bigquery.BigQueryConfiguration;
 import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
+import com.yahoo.ycsb.model.Type;
 import org.apache.htrace.core.HTraceConfiguration;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
@@ -39,11 +42,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.yahoo.ycsb.gcp.bigquery.BigQueryConfiguration.*;
 
 /**
  * A thread to periodically show the status of the experiment to reassure you that progress is being made.
@@ -78,6 +87,7 @@ class StatusThread extends Thread {
   private long lastGCTime = 0;
   private String statsExportFile;
   private int threadcount = 1;
+  private BigQueryApi bigQueryApi;
 
   /**
    * Creates a new StatusThread without JVM stat tracking.
@@ -88,13 +98,14 @@ class StatusThread extends Thread {
    * @param label                 The label for the status.
    * @param standardstatus        If true the status is printed to stdout in addition to stderr.
    * @param statusIntervalSeconds The number of seconds between status updates.
-   * @param statsExportFile           Format of logs
+   * @param statsExportFile       logs to file
+   * @param bigQueryApi           logs to BigQuery
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds, String statsExportFile,
-                      int threadcount) {
+                      int threadcount, BigQueryApi bigQueryApi) {
     this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, statsExportFile,
-        threadcount);
+        threadcount, bigQueryApi);
   }
 
   /**
@@ -109,7 +120,7 @@ class StatusThread extends Thread {
    */
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds) {
-    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, "", 1);
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, false, "", 1, null);
   }
 
   /**
@@ -128,6 +139,26 @@ class StatusThread extends Thread {
   public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
                       String label, boolean standardstatus, int statusIntervalSeconds,
                       boolean trackJVMStats, String statsExportFile, int threadcount) {
+    this(completeLatch, clients, label, standardstatus, statusIntervalSeconds, trackJVMStats,
+        statsExportFile, threadcount, null);
+  }
+  /**
+   * Creates a new StatusThread.
+   *
+   * @param completeLatch         The latch that each client thread will {@link CountDownLatch#countDown()}
+   *                              as they complete.
+   * @param clients               The clients to collect metrics from.
+   * @param label                 The label for the status.
+   * @param standardstatus        If true the status is printed to stdout in addition to stderr.
+   * @param statusIntervalSeconds The number of seconds between status updates.
+   * @param trackJVMStats         Whether or not to track JVM stats.
+   * @param statsExportFile       ExportStatsToFile
+   * @param threadcount           Thread Count
+   * @param bigQueryApi           logs to BigQuery
+   */
+  public StatusThread(CountDownLatch completeLatch, List<ClientThread> clients,
+                      String label, boolean standardstatus, int statusIntervalSeconds,
+                      boolean trackJVMStats, String statsExportFile, int threadcount, BigQueryApi bigQueryApi) {
     this.completeLatch = completeLatch;
     this.clients = clients;
     this.label = label;
@@ -137,6 +168,7 @@ class StatusThread extends Thread {
     this.trackJVMStats = trackJVMStats;
     this.statsExportFile = statsExportFile;
     this.threadcount = threadcount;
+    this.bigQueryApi = bigQueryApi;
   }
 
   /**
@@ -259,7 +291,7 @@ class StatusThread extends Thread {
    */
   private long computeStatsForTimeSeriesCsv(final long startTimeMs, long startIntervalMs, long endIntervalMs,
                             long lastTotalOps) {
-
+    List<Map<String, Object>> rowsForBigQuery = new ArrayList<>();
     long totalops = 0;
     long todoops = 0;
 
@@ -290,10 +322,23 @@ class StatusThread extends Thread {
     StringBuilder result = new StringBuilder();
     for (String aSummary : summary) {
       if (!aSummary.isEmpty()) {
+        String[] latency = aSummary.split(";");
+
+        Map<String, Object> resultInOneInterval = new HashMap<>();
+        resultInOneInterval.put("type", latency[0]);
+        resultInOneInterval.put("latency", latency[1]);
+        resultInOneInterval.put("throughput", curthroughput);
+        resultInOneInterval.put("operations", totalops);
+        resultInOneInterval.put("time", interval/1000);
+        resultInOneInterval.put("threads", threadcount);
+        rowsForBigQuery.add(resultInOneInterval);
         result.append(common).append(aSummary).append(";").append(threadcount).append(System.lineSeparator());
       }
     }
 
+    if (Objects.nonNull(bigQueryApi)) {
+      bigQueryApi.insert(rowsForBigQuery);
+    }
     if (!statsExportFile.isEmpty()) {
       writeToFile(result.toString());
     } else {
@@ -851,8 +896,24 @@ public final class Client {
   }
 
   @SuppressWarnings("unchecked")
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     Properties props = parseArguments(args);
+    BiFunction<String, Integer, String> parse = (field, type) -> field.split(":")[type];
+
+    //BigQuery
+    String projectId = props.getProperty(BIG_QUERY_PROJECT_ID);
+    String dataSetName = props.getProperty(BIG_QUERY_DATA_SET_NAME);
+    String tableName = props.getProperty(BIG_QUERY_TABLE_NAME);
+    String pathToKey = props.getProperty(BIG_QUERY_PATH_TO_KEY);
+
+    String modelBigQuery = props.getProperty(BIG_QUERY_MODEL);
+    Map<String, Type> statModel = null;
+    if (Objects.nonNull(modelBigQuery)) {
+      statModel = Stream.of(props.getProperty(BIG_QUERY_MODEL).split(";"))
+          .collect(Collectors.toMap(s -> parse.apply(s, 0), s -> Type.valueOf(parse.apply(s, 1))));
+    }
+    BigQueryConfiguration bigQueryConfiguration = new BigQueryConfiguration(projectId, dataSetName,
+        tableName, pathToKey, statModel);
 
     boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
     String label = props.getProperty(LABEL_PROPERTY, "");
@@ -899,8 +960,14 @@ public final class Client {
 
       String statsExportFile = props.getProperty(EXPORT_STATS_TO_FILE, DEFAULT_EXPORT_STATS_TO_FILE);
 
-      statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
-          trackJVMStats, statsExportFile, threadcount);
+      if (bigQueryConfiguration.isPropertyCorrect()) {
+        statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
+            trackJVMStats, statsExportFile, threadcount, new BigQueryApi(bigQueryConfiguration));
+      } else {
+        statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
+            trackJVMStats, statsExportFile, threadcount);
+      }
+
       statusthread.start();
     }
 

@@ -91,7 +91,7 @@ public class IntegrationTest {
 
   // All read operations during benchmark are executed successfully with an HTTP OK status.
   @Test
-  public void testReadOpsBenchmarkSuccess() throws InterruptedException {
+  public void testReadOpsBenchmarkSuccess() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -106,7 +106,7 @@ public class IntegrationTest {
   
   //All read operations during benchmark are executed with an HTTP 500 error.
   @Test
-  public void testReadOpsBenchmarkFailure() throws InterruptedException {
+  public void testReadOpsBenchmarkFailure() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -121,7 +121,7 @@ public class IntegrationTest {
   
   //All insert operations during benchmark are executed successfully with an HTTP OK status.
   @Test
-  public void testInsertOpsBenchmarkSuccess() throws InterruptedException {
+  public void testInsertOpsBenchmarkSuccess() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -136,7 +136,7 @@ public class IntegrationTest {
   
   //All read operations during benchmark are executed with an HTTP 500 error.
   @Test
-  public void testInsertOpsBenchmarkFailure() throws InterruptedException {
+  public void testInsertOpsBenchmarkFailure() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -151,7 +151,7 @@ public class IntegrationTest {
 
   //All update operations during benchmark are executed successfully with an HTTP OK status.
   @Test
-  public void testUpdateOpsBenchmarkSuccess() throws InterruptedException {
+  public void testUpdateOpsBenchmarkSuccess() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -166,7 +166,7 @@ public class IntegrationTest {
   
   //All read operations during benchmark are executed with an HTTP 500 error.
   @Test
-  public void testUpdateOpsBenchmarkFailure() throws InterruptedException {
+  public void testUpdateOpsBenchmarkFailure() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -181,7 +181,7 @@ public class IntegrationTest {
 
   //All delete operations during benchmark are executed successfully with an HTTP OK status.
   @Test
-  public void testDeleteOpsBenchmarkSuccess() throws InterruptedException {
+  public void testDeleteOpsBenchmarkSuccess() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override
@@ -196,7 +196,7 @@ public class IntegrationTest {
   
   //All read operations during benchmark are executed with an HTTP 500 error.
   @Test
-  public void testDeleteOpsBenchmarkFailure() throws InterruptedException {
+  public void testDeleteOpsBenchmarkFailure() throws InterruptedException, IOException {
     exit.expectSystemExit();
     exit.checkAssertionAfterwards(new Assertion() {
       @Override

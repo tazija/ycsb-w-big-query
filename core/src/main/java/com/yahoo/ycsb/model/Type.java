@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc., Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2018 Yahoo! Inc., Copyright (c) 2016-2017 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -16,6 +16,7 @@
  */
 package com.yahoo.ycsb.model;
 
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.NumericByteIterator;
 import com.yahoo.ycsb.RandomByteIterator;
@@ -26,9 +27,21 @@ import com.yahoo.ycsb.generator.NumberGenerator;
  * Type for model.
  */
 public enum Type {
-  STRING,
-  DOUBLE,
-  LONG;
+  STRING(LegacySQLTypeName.STRING),
+  DOUBLE(LegacySQLTypeName.FLOAT),
+  LONG(LegacySQLTypeName.INTEGER),
+  INTEGER(LegacySQLTypeName.INTEGER),
+  FLOAT(LegacySQLTypeName.FLOAT);
+
+  private LegacySQLTypeName legacySQLTypeName;
+
+  Type(LegacySQLTypeName legacySQLTypeName) {
+    this.legacySQLTypeName = legacySQLTypeName;
+  }
+
+  public LegacySQLTypeName getLegacySQLTypeName() {
+    return legacySQLTypeName;
+  }
 
   public ByteIterator getByteIterator(String key, String fieldkey, NumberGenerator fieldlengthgenerator) {
     switch (this) {
