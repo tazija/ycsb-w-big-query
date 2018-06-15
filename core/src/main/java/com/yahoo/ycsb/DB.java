@@ -105,6 +105,25 @@ public abstract class DB {
                               Vector<HashMap<String, ByteIterator>> result);
 
   /**
+   * Perform a query type 1 execution - filter with OFFSET and LIMIT for a set of records in the database.
+   * Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table The name of the table
+   * @param filterfield The field to filter records by.
+   * @param filtervalue The value to use in 'WHERE' clause.
+   * @param offset    Read offset.
+   * @param recordcount The number of records to read.
+   * @param fields The list of fields to read, or null for all of them.
+   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return The result of the operation.
+   */
+  public Status query1(
+      String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
    * record with the specified record key, overwriting any existing values with the same field name.
    *

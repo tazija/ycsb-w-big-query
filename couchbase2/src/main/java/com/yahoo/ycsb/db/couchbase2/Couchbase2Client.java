@@ -57,6 +57,7 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.model.Type;
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Action1;
@@ -69,6 +70,7 @@ import java.util.*;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
 
 /**
  * A class that wraps the 2.x Couchbase SDK to be used with YCSB.
@@ -337,6 +339,13 @@ public class Couchbase2Client extends DB {
     }
   }
 
+  @Override
+  public Status update(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
+    //return update(table, key, values);
+    // todo[m.lushchytski]: implement me!
+    return Status.OK;
+  }
+
   /**
    * Performs the {@link #update(String, String, Map)} operation via Key/Value ("replace").
    *
@@ -397,6 +406,13 @@ public class Couchbase2Client extends DB {
       ex.printStackTrace();
       return Status.ERROR;
     }
+  }
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values, Map<String, Type> model) {
+//    return insert(table, key, values);
+    // todo[m.lushchytski]: implement me
+    return Status.OK;
   }
 
   /**
@@ -586,9 +602,47 @@ public class Couchbase2Client extends DB {
       final Vector<HashMap<String, ByteIterator>> result) {
     try {
       if (fields == null || fields.isEmpty()) {
-        return scanAllFields(table, startkey, recordcount, result);
+        return queryAllFields(() -> N1qlQuery.parameterized(
+            scanAllQuery,
+            JsonArray.from(formatId(table, startkey), recordcount),
+            N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+        ), recordcount, result);
       } else {
-        return scanSpecificFields(table, startkey, recordcount, fields, result);
+        String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
+            + "` WHERE meta().id >= '$1' LIMIT $2";
+
+        return querySpecificFields(() -> N1qlQuery.parameterized(
+            scanSpecQuery,
+            JsonArray.from(formatId(table, startkey), recordcount),
+            N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+        ), recordcount, fields, result);
+      }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  @Override
+  public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      if (fields == null || fields.isEmpty()) {
+        String query = "SELECT RAW meta().id FROM `" +  bucketName
+            + "` WHERE " + filterfield + " = '$1' OFFSET $2 LIMIT $3";
+        return queryAllFields(() -> N1qlQuery.parameterized(
+            query,
+            JsonArray.from(filtervalue, offset, recordcount),
+            N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+        ), recordcount, result);
+      } else {
+        String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
+            + "` WHERE " + filterfield + " = '$1' OFFSET $2 LIMIT $3";
+
+        return querySpecificFields(() -> N1qlQuery.parameterized(
+            scanSpecQuery,
+            JsonArray.from(filtervalue, offset, recordcount),
+            N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+        ), recordcount, fields, result);
       }
     } catch (Exception ex) {
       ex.printStackTrace();
@@ -597,33 +651,29 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #scan(String, String, int, Set, Vector)} operation, optimized for all fields.
+   * Performs the query operation, optimized for all fields.
    *
    * Since the full document bodies need to be loaded anyways, it makes sense to just grab the document IDs
    * from N1QL and then perform the bulk loading via KV for better performance. This is a usual pattern with
    * Couchbase and shows the benefits of using both N1QL and KV together.
    *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
+   * @param querySupplier N1QL query to execute.
    * @param recordcount The number of records to read
    * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
-  private Status scanAllFields(final String table, final String startkey, final int recordcount,
-      final Vector<HashMap<String, ByteIterator>> result) {
+  private Status queryAllFields(
+      final Supplier<N1qlQuery> querySupplier, final int recordcount, final Vector<HashMap<String, ByteIterator>> result
+  ) {
     final List<HashMap<String, ByteIterator>> data = new ArrayList<HashMap<String, ByteIterator>>(recordcount);
     bucket.async()
-        .query(N1qlQuery.parameterized(
-          scanAllQuery,
-          JsonArray.from(formatId(table, startkey), recordcount),
-          N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
-        ))
+        .query(querySupplier.get())
         .doOnNext(new Action1<AsyncN1qlQueryResult>() {
           @Override
           public void call(AsyncN1qlQueryResult result) {
             if (!result.parseSuccess()) {
               throw new RuntimeException("Error while parsing N1QL Result. Query: " + scanAllQuery
-                + ", Errors: " + result.errors());
+                  + ", Errors: " + result.errors());
             }
           }
         })
@@ -661,28 +711,23 @@ public class Couchbase2Client extends DB {
   }
 
   /**
-   * Performs the {@link #scan(String, String, int, Set, Vector)} operation N1Ql only for a subset of the fields.
+   * Performs the query operation N1Ql only for a subset of the fields.
    *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
+   * @param querySupplier Query supplier.
    * @param recordcount The number of records to read
    * @param fields The list of fields to read, or null for all of them
    * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
-  private Status scanSpecificFields(final String table, final String startkey, final int recordcount,
-      final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result) {
-    String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
-        + "` WHERE meta().id >= '$1' LIMIT $2";
-    N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(
-        scanSpecQuery,
-        JsonArray.from(formatId(table, startkey), recordcount),
-        N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
-    ));
+  private Status querySpecificFields(
+      final Supplier<N1qlQuery> querySupplier, final int recordcount, final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result
+  ) {
+    N1qlQuery query = querySupplier.get();
+    N1qlQueryResult queryResult = bucket.query(query);
 
     if (!queryResult.parseSuccess() || !queryResult.finalSuccess()) {
-      throw new RuntimeException("Error while parsing N1QL Result. Query: " + scanSpecQuery
-        + ", Errors: " + queryResult.errors());
+      throw new RuntimeException("Error while parsing N1QL Result. Query: " + query
+          + ", Errors: " + queryResult.errors());
     }
 
     boolean allFields = fields == null || fields.isEmpty();

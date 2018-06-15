@@ -17,26 +17,25 @@
 package com.yahoo.ycsb.workloads;
 
 import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.RandomByteIterator;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.WorkloadException;
-import com.yahoo.ycsb.generator.AcknowledgedCounterGenerator;
-import com.yahoo.ycsb.generator.CounterGenerator;
-import com.yahoo.ycsb.generator.ExponentialGenerator;
-import com.yahoo.ycsb.generator.HotspotIntegerGenerator;
-import com.yahoo.ycsb.generator.ScrambledZipfianGenerator;
-import com.yahoo.ycsb.generator.SequentialGenerator;
-import com.yahoo.ycsb.generator.SkewedLatestGenerator;
+import com.yahoo.ycsb.generator.DiscreteGenerator;
+import com.yahoo.ycsb.generator.NumberGenerator;
 import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.generator.ZipfianGenerator;
 import com.yahoo.ycsb.model.Type;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.Vector;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -92,14 +91,95 @@ public class CoreWorkloadExtension extends CoreWorkload {
    */
   private static final String FIELD_MODEL_PROPERTY = "model";
 
+  /**
+   * The name of the property for the max query length (to use in LIMIT clause).
+   */
+  public static final String MAX_QUERY_LENGTH_PROPERTY = "maxquerylength";
+
+  /**
+   * The default max query length.
+   */
+  public static final String MAX_QUERY_LENGTH_PROPERTY_DEFAULT = "1000";
+
+  /**
+   * The name of the property for the query llength distribution. Options are "uniform" and "zipfian"
+   * (favoring short queries)
+   */
+  public static final String QUERY_LENGTH_DISTRIBUTION_PROPERTY = "querylengthdistribution";
+
+  /**
+   * The default query length distribution.
+   */
+  public static final String QUERY_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
+
+  /**
+   * The name of the property for the max query offset (to use in OFFSET clause).
+   */
+  public static final String MAX_QUERY_OFFSET_PROPERTY = "maxqueryoffset";
+
+  /**
+   * The default max query offset.
+   */
+  public static final String MAX_QUERY_OFFSET_PROPERTY_DEFAULT = "20";
+
+  /**
+   * The name of the property for the query offset distribution. Options are "uniform" and "zipfian"
+   * (favoring short queries)
+   */
+  public static final String QUERY_OFFSET_DISTRIBUTION_PROPERTY = "queryoffsetdistribution";
+
+  /**
+   * The default query offset distribution.
+   */
+  public static final String QUERY_OFFSET_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
+
+  /**
+   * The name of the property for the proportion of transactions that are of query 1 type -
+   * Filter​ with OFFSET and LIMIT.
+   */
+  public static final String QUERY_1_PROPORTION_PROPERTY = "query1proportion";
+
+  /**
+   * The default proportion of transactions that are of query 1 type.
+   */
+  public static final String QUERY_1_PROPORTION_PROPERTY_DEFAULT = "0";
+
+  /**
+   * The name of the property defining field to filter by in query 1 workload.
+   */
+  public static final String QUERY_1_FILTER_FIELD_NAME = "query1filterfield";
+
+  /**
+   * The name of the property defining existing field values to filter by in
+   * query 1 workload.
+   */
+  public static final String QUERY_1_FILTER_FIELD_VALUES = "query1filtervalues";
+
+  /**
+   * The name of the property for the proportion of transactions that are of query 2 type -
+   * ​JOIN​ with GROUP BY and ORDER BY.
+   */
+  public static final String QUERY_2_PROPORTION_PROPERTY = "query2proportion";
+
+  /**
+   * The default proportion of transactions that are of query 2 type.
+   */
+  public static final String QUERY_2_PROPORTION_PROPERTY_DEFAULT = "0";
+
   private static final Integer NAME = 0;
   private static final Integer TYPE = 1;
 
   private Map<String, Type> model;
 
+  private NumberGenerator queryoffset;
+  private NumberGenerator querylength;
+  private String query1FilterField;
+  private List<String> query1FilterValues;
+  private NumberGenerator query1FilterValueIndexGenerator;
+
   @Override
   public void init(Properties p) throws WorkloadException {
-    table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
+    super.init(p);
 
     fieldcount = Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
 
@@ -109,115 +189,87 @@ public class CoreWorkloadExtension extends CoreWorkload {
     fieldnames = new ArrayList<>(model.keySet());
     fieldcount = Math.min(this.fieldcount, this.fieldnames.size());
 
-    fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
-
-    recordcount =
-        Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
-    if (recordcount == 0) {
-      recordcount = Integer.MAX_VALUE;
-    }
-    String requestdistrib =
-        p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
-    int maxscanlength =
-        Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
-    String scanlengthdistrib =
-        p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-
-    long insertstart =
-        Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
-    long insertcount=
-        Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
-    // Confirm valid values for insertstart and insertcount in relation to recordcount
-    if (recordcount < (insertstart + insertcount)) {
-      System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
-      System.err.println("recordcount must be bigger than insertstart + insertcount.");
-      System.exit(-1);
-    }
-    zeropadding =
-        Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
-
-    readallfields = Boolean.parseBoolean(
-        p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
-    writeallfields = Boolean.parseBoolean(
-        p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
-
-    dataintegrity = Boolean.parseBoolean(
-        p.getProperty(DATA_INTEGRITY_PROPERTY, DATA_INTEGRITY_PROPERTY_DEFAULT));
-    // Confirm that fieldlengthgenerator returns a constant if data
-    // integrity check requested.
-    if (dataintegrity && !(p.getProperty(
-        FIELD_LENGTH_DISTRIBUTION_PROPERTY,
-        FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT)).equals("constant")) {
-      System.err.println("Must have constant field size to check data integrity.");
-      System.exit(-1);
-    }
-
-    if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
-      orderedinserts = false;
-    } else if (requestdistrib.compareTo("exponential") == 0) {
-      double percentile = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
-      double frac = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
-      keychooser = new ExponentialGenerator(percentile, recordcount * frac);
-    } else {
-      orderedinserts = true;
-    }
-
-    keysequence = new CounterGenerator(insertstart);
-    operationchooser = createOperationGenerator(p);
-
-    transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
-    if (requestdistrib.compareTo("uniform") == 0) {
-      keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
-    } else if (requestdistrib.compareTo("sequential") == 0) {
-      keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
-    } else if (requestdistrib.compareTo("zipfian") == 0) {
-      // it does this by generating a random "next key" in part by taking the modulus over the
-      // number of keys.
-      // If the number of keys changes, this would shift the modulus, and we don't want that to
-      // change which keys are popular so we'll actually construct the scrambled zipfian generator
-      // with a keyspace that is larger than exists at the beginning of the test. that is, we'll predict
-      // the number of inserts, and tell the scrambled zipfian generator the number of existing keys
-      // plus the number of predicted keys as the total keyspace. then, if the generator picks a key
-      // that hasn't been inserted yet, will just ignore it and pick another key. this way, the size of
-      // the keyspace doesn't change from the perspective of the scrambled zipfian generator
-      final double insertproportion = Double.parseDouble(
-          p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
-      int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
-      int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
-
-      keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys);
-    } else if (requestdistrib.compareTo("latest") == 0) {
-      keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
-    } else if (requestdistrib.equals("hotspot")) {
-      double hotsetfraction =
-          Double.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
-      double hotopnfraction =
-          Double.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
-      keychooser = new HotspotIntegerGenerator(insertstart, insertstart + insertcount - 1,
-          hotsetfraction, hotopnfraction);
-    } else {
-      throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
-    }
-
     fieldchooser = new UniformLongGenerator(0, fieldcount - 1);
 
-    if (scanlengthdistrib.compareTo("uniform") == 0) {
-      scanlength = new UniformLongGenerator(1, maxscanlength);
-    } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
-      scanlength = new ZipfianGenerator(1, maxscanlength);
+    query1FilterField = p.getProperty(QUERY_1_FILTER_FIELD_NAME);
+    query1FilterValues = Arrays.asList(p.getProperty(QUERY_1_FILTER_FIELD_VALUES, "").split(","));
+
+    int maxquerylength =
+        Integer.parseInt(p.getProperty(MAX_QUERY_LENGTH_PROPERTY, MAX_QUERY_LENGTH_PROPERTY_DEFAULT));
+    String querylengthdistrib =
+        p.getProperty(QUERY_LENGTH_DISTRIBUTION_PROPERTY, QUERY_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+
+    if (querylengthdistrib.compareTo("uniform") == 0) {
+      querylength = new UniformLongGenerator(1, maxquerylength);
+    } else if (querylengthdistrib.compareTo("zipfian") == 0) {
+      querylength = new ZipfianGenerator(1, maxquerylength);
     } else {
       throw new WorkloadException(
-          "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
+          "Distribution \"" + querylengthdistrib + "\" not allowed for query length");
     }
 
-    insertionRetryLimit = Integer.parseInt(p.getProperty(
-        INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
-    insertionRetryInterval = Integer.parseInt(p.getProperty(
-        INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
+    int maxoffsetlength =
+        Integer.parseInt(p.getProperty(MAX_QUERY_OFFSET_PROPERTY, MAX_QUERY_OFFSET_PROPERTY_DEFAULT));
+    String queryoffsetdistrib =
+        p.getProperty(QUERY_OFFSET_DISTRIBUTION_PROPERTY, QUERY_OFFSET_DISTRIBUTION_PROPERTY_DEFAULT);
+
+    if (queryoffsetdistrib.compareTo("uniform") == 0) {
+      queryoffset = new UniformLongGenerator(1, maxoffsetlength);
+    } else if (queryoffsetdistrib.compareTo("zipfian") == 0) {
+      queryoffset = new ZipfianGenerator(1, maxoffsetlength);
+    } else {
+      throw new WorkloadException(
+          "Distribution \"" + queryoffsetdistrib + "\" not allowed for query offset");
+    }
+
+    boolean isQuery1 = Double.parseDouble(
+        p.getProperty(QUERY_1_PROPORTION_PROPERTY, QUERY_1_PROPORTION_PROPERTY_DEFAULT)) > 0;
+    if (isQuery1) {
+      if (Objects.isNull(query1FilterField) || query1FilterField.length() == 0) {
+        throw new WorkloadException(
+            "Query 1 filter field must be specified via " + QUERY_1_FILTER_FIELD_NAME + " property"
+        );
+      }
+
+      if (query1FilterValues.size() == 0) {
+        throw new WorkloadException(
+            "Please, specify at least 1 query 1 filter value via " + QUERY_1_FILTER_FIELD_VALUES + " property"
+        );
+      }
+
+      query1FilterValueIndexGenerator = new UniformLongGenerator(0, query1FilterValues.size() - 1);
+    }
+
+    operationchooser = createOperationGenerator(p);
+  }
+
+  /**
+   * Creates a weighted discrete values with database operations for a workload to perform.
+   * Weights/proportions are read from the properties list and defaults are used
+   * when values are not configured.
+   * Current operations are "READ", "UPDATE", "INSERT", "SCAN" and "READMODIFYWRITE".
+   *
+   * @param p The properties list to pull weights from.
+   * @return A generator that can be used to determine the next operation to perform.
+   * @throws IllegalArgumentException if the properties object was null.
+   */
+  protected static DiscreteGenerator createOperationGenerator(final Properties p) {
+    DiscreteGenerator operationchooser = CoreWorkload.createOperationGenerator(p);
+
+    final double query1Proportion = Double.parseDouble(
+        p.getProperty(QUERY_1_PROPORTION_PROPERTY, QUERY_1_PROPORTION_PROPERTY_DEFAULT));
+    final double query2Proportion = Double.parseDouble(
+        p.getProperty(QUERY_2_PROPORTION_PROPERTY, QUERY_2_PROPORTION_PROPERTY_DEFAULT));
+
+    if (query1Proportion > 0) {
+      operationchooser.addValue(query1Proportion, "QUERY_1");
+    }
+
+    if (query2Proportion > 0) {
+      operationchooser.addValue(query2Proportion, "QUERY_2");
+    }
+
+    return operationchooser;
   }
 
   @Override
@@ -257,10 +309,43 @@ public class CoreWorkloadExtension extends CoreWorkload {
     return null != status && status.isOk();
   }
 
-
+  /**
+   * Do one transaction operation. Because it will be called concurrently from multiple client
+   * threads, this function must be thread safe. However, avoid synchronized, or the threads will block waiting
+   * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
+   * have no side effects other than DB operations.
+   */
   @Override
   public boolean doTransaction(DB db, Object threadstate) {
-    return super.doTransaction(db, threadstate);
+    String operation = operationchooser.nextString();
+    if(operation == null) {
+      return false;
+    }
+
+    switch (operation) {
+      case "READ":
+        doTransactionRead(db);
+        break;
+      case "UPDATE":
+        doTransactionUpdate(db);
+        break;
+      case "INSERT":
+        doTransactionInsert(db);
+        break;
+      case "SCAN":
+        doTransactionScan(db);
+        break;
+      case "QUERY_1":
+        doTransactionQuery1(db);
+        break;
+//      case "QUERY_2":
+//        doTransactionQuery2(db);
+//        break;
+      default:
+        doTransactionReadModifyWrite(db);
+    }
+
+    return true;
   }
 
   @Override
@@ -296,6 +381,29 @@ public class CoreWorkloadExtension extends CoreWorkload {
     }
 
     db.update(table, keyname, values, model);
+  }
+
+  public void doTransactionQuery1(DB db) {
+    // choose filter value
+    String filtervalue = query1FilterValues.get(query1FilterValueIndexGenerator.nextValue().intValue());
+
+    // choose a random query offset
+    int offset = queryoffset.nextValue().intValue();
+
+    // choose a random query length
+    int len = querylength.nextValue().intValue();
+
+    HashSet<String> fields = null;
+
+    if (!readallfields) {
+      // read a random field
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+      fields = new HashSet<>();
+      fields.add(fieldname);
+    }
+
+    db.query1(table, query1FilterField, filtervalue, offset, len, fields, new Vector<>());
   }
 
   /**

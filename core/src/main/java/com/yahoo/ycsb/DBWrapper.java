@@ -49,6 +49,7 @@ public class DBWrapper extends DB {
   private final String scopeStringRead;
   private final String scopeStringScan;
   private final String scopeStringUpdate;
+  private final String scopeStringQuery1;
 
   public DBWrapper(final DB db, final Tracer tracer) {
     this.db = db;
@@ -62,6 +63,7 @@ public class DBWrapper extends DB {
     scopeStringRead = simple + "#read";
     scopeStringScan = simple + "#scan";
     scopeStringUpdate = simple + "#update";
+    scopeStringQuery1 = simple + "#query1";
   }
 
   /**
@@ -161,6 +163,19 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("SCAN", res, ist, st, en);
       measurements.reportStatus("SCAN", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    try (final TraceScope span = tracer.newScope(scopeStringQuery1)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.query1(table, filterfield, filtervalue, offset, recordcount, fields, result);
+      long en = System.nanoTime();
+      measure("QUERY_1", res, ist, st, en);
+      measurements.reportStatus("QUERY_1", res);
       return res;
     }
   }
