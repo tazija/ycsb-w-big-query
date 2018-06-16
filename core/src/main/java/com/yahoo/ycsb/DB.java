@@ -118,8 +118,8 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public Status query1(
-      String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result
-  ) {
+      String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields,
+      Vector<HashMap<String, ByteIterator>> result) {
     throw new UnsupportedOperationException();
   }
 

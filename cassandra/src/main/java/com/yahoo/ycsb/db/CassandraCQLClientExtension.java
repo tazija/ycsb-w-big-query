@@ -21,8 +21,11 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.NumericByteIterator;
@@ -32,11 +35,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Cassandra 2.x CQL client.
@@ -49,7 +58,10 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
 
   private static Logger logger = LoggerFactory.getLogger(CassandraCQLClientExtension.class);
 
-
+  private static AtomicReference<PreparedStatement> readAllStmt =
+      new AtomicReference<PreparedStatement>();
+  private static ConcurrentMap<Set<String>, PreparedStatement> readStmts =
+      new ConcurrentHashMap<Set<String>, PreparedStatement>();
   private static ConcurrentMap<Set<String>, PreparedStatement> insertStmts =
       new ConcurrentHashMap<>();
   private static ConcurrentMap<Set<String>, PreparedStatement> updateStmts =
@@ -210,5 +222,68 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
     }
 
     return Status.ERROR;
+  }
+
+  /**
+   * Perform a query type 1 execution - filter with OFFSET and LIMIT for a set of records in the database.
+   * Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table The name of the table
+   * @param filterfield The field to filter records by.
+   * @param filtervalue The value to use in 'WHERE' clause.
+   * @param offset    Read offset.
+   * @param recordcount The number of records to read.
+   * @param fields The list of fields to read, or null for all of them.
+   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return The result of the operation.
+   */
+  public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount,
+                       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      PreparedStatement stmt = (fields == null) ? readAllStmt.get() : readStmts.get(fields);
+
+      if (stmt == null) {
+        Select.Builder selectBuilder;
+
+        if (fields == null) {
+          selectBuilder = QueryBuilder.select().all();
+        } else {
+          selectBuilder = QueryBuilder.select();
+          for (String col : fields) {
+            ((Select.Selection) selectBuilder).column(col);
+          }
+        }
+
+        stmt = session.prepare(selectBuilder.from(table)
+            .where(QueryBuilder.eq(filterfield, QueryBuilder.bindMarker()))
+            .limit(recordcount));
+        stmt.setConsistencyLevel(ConsistencyLevel.ONE);
+
+        if (trace) {
+          stmt.enableTracing();
+        }
+
+        PreparedStatement preparedStatement = (fields == null) ?
+            readAllStmt.getAndSet(stmt) :
+            readStmts.putIfAbsent(new HashSet<>(fields), stmt);
+
+        if (preparedStatement != null) {
+          stmt = preparedStatement;
+        }
+      }
+
+      ResultSet rs = session.execute(stmt.bind(filtervalue));
+
+      List<Row> rows = StreamSupport.stream(rs.spliterator(), false)
+          .skip(offset)
+          .collect(Collectors.toList());
+
+      return Status.OK;
+
+    } catch (Exception e) {
+      System.out.println(e.getMessage());
+      logger.error(MessageFormatter.format("Error reading key: {}", filterfield).getMessage(), e);
+      return Status.ERROR;
+    }
   }
 }
