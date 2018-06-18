@@ -124,6 +124,26 @@ public abstract class DB {
   }
 
   /**
+   * Perform a query type 2 execution - JOIN​ with GROUP BY and ORDER BYfor a set of records in the database.
+   * Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table The name of the table
+   * @param filterfield1 The first field to filter records by.
+   * @param filtervalue1 The first value to use in 'WHERE' clause.
+   * @param filterfield2 The second field to filter records by.
+   * @param filtervalue2 The second value to use in 'WHERE' clause.
+   * @param fields The list of fields to read, or null for all of them.
+   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return The result of the operation.
+   */
+  public Status query2(
+      String table, String filterfield1, String filtervalue1, String filterfield2, String filtervalue2,
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
    * record with the specified record key, overwriting any existing values with the same field name.
    *

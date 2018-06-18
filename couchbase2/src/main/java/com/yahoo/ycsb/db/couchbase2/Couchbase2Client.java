@@ -624,7 +624,10 @@ public class Couchbase2Client extends DB {
   }
 
   @Override
-  public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public Status query1(
+      String table, String filterfield, String filtervalue, int offset, int recordcount, Set<String> fields,
+      Vector<HashMap<String, ByteIterator>> result
+  ) {
     try {
       if (fields == null || fields.isEmpty()) {
         String query = "SELECT RAW meta().id FROM `" +  bucketName
@@ -720,7 +723,8 @@ public class Couchbase2Client extends DB {
    * @return The result of the operation.
    */
   private Status querySpecificFields(
-      final Supplier<N1qlQuery> querySupplier, final int recordcount, final Set<String> fields, final Vector<HashMap<String, ByteIterator>> result
+      final Supplier<N1qlQuery> querySupplier, final int recordcount, final Set<String> fields,
+      final Vector<HashMap<String, ByteIterator>> result
   ) {
     N1qlQuery query = querySupplier.get();
     N1qlQueryResult queryResult = bucket.query(query);
