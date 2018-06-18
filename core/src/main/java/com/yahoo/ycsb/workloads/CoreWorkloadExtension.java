@@ -166,6 +166,28 @@ public class CoreWorkloadExtension extends CoreWorkload {
    */
   public static final String QUERY_2_PROPORTION_PROPERTY_DEFAULT = "0";
 
+  /**
+   * The name of the property defining the first field to filter by in query 2 workload.
+   */
+  public static final String QUERY_2_FILTER_FIELD_1_NAME = "query2filterfield1";
+
+  /**
+   * The name of the property defining existing field values to filter by first field in
+   * query 2 workload.
+   */
+  public static final String QUERY_2_FILTER_FIELD_VALUES_1 = "query2filtervalues1";
+
+  /**
+   * The name of the property defining the second field to filter by in query 2 workload.
+   */
+  public static final String QUERY_2_FILTER_FIELD_2_NAME = "query2filterfield2";
+
+  /**
+   * The name of the property defining existing field values to filter by second field in
+   * query 2 workload.
+   */
+  public static final String QUERY_2_FILTER_FIELD_VALUES_2 = "query2filtervalues2";
+
   private static final Integer NAME = 0;
   private static final Integer TYPE = 1;
 
@@ -176,6 +198,13 @@ public class CoreWorkloadExtension extends CoreWorkload {
   private String query1FilterField;
   private List<String> query1FilterValues;
   private NumberGenerator query1FilterValueIndexGenerator;
+
+  private String query2FilterField1;
+  private List<String> query2FilterValues1;
+  private NumberGenerator query2FilterValue1IndexGenerator;
+  private String query2FilterField2;
+  private List<String> query2FilterValues2;
+  private NumberGenerator query2FilterValue2IndexGenerator;
 
   @Override
   public void init(Properties p) throws WorkloadException {
@@ -238,6 +267,40 @@ public class CoreWorkloadExtension extends CoreWorkload {
       }
 
       query1FilterValueIndexGenerator = new UniformLongGenerator(0, query1FilterValues.size() - 1);
+    }
+
+    query2FilterField1 = p.getProperty(QUERY_2_FILTER_FIELD_1_NAME);
+    query2FilterValues1 = Arrays.asList(p.getProperty(QUERY_2_FILTER_FIELD_VALUES_1, "").split(","));
+    query2FilterField2 = p.getProperty(QUERY_2_FILTER_FIELD_2_NAME);
+    query2FilterValues2 = Arrays.asList(p.getProperty(QUERY_2_FILTER_FIELD_VALUES_2, "").split(","));
+    boolean isQuery2 = Double.parseDouble(
+        p.getProperty(QUERY_2_PROPORTION_PROPERTY, QUERY_2_PROPORTION_PROPERTY_DEFAULT)) > 0;
+    if (isQuery2) {
+      if (Objects.isNull(query2FilterField1) || query2FilterField1.length() == 0) {
+        throw new WorkloadException(
+            "Query 2 filter field 1 must be specified via " + QUERY_2_FILTER_FIELD_1_NAME + " property"
+        );
+      }
+      if (Objects.isNull(query2FilterField2) || query2FilterField2.length() == 0) {
+        throw new WorkloadException(
+            "Query 2 filter field 2 must be specified via " + QUERY_2_FILTER_FIELD_2_NAME + " property"
+        );
+      }
+
+      if (query2FilterValues1.size() == 0) {
+        throw new WorkloadException(
+            "Please, specify at least 1 query 2 filter value 1 via " + QUERY_2_FILTER_FIELD_VALUES_1 + " property"
+        );
+      }
+
+      if (query2FilterValues2.size() == 0) {
+        throw new WorkloadException(
+            "Please, specify at least 1 query 2 filter value 2 via " + QUERY_2_FILTER_FIELD_VALUES_2 + " property"
+        );
+      }
+
+      query2FilterValue1IndexGenerator = new UniformLongGenerator(0, query2FilterValues1.size() - 1);
+      query2FilterValue2IndexGenerator = new UniformLongGenerator(0, query2FilterValues2.size() - 1);
     }
 
     operationchooser = createOperationGenerator(p);
@@ -338,9 +401,9 @@ public class CoreWorkloadExtension extends CoreWorkload {
       case "QUERY_1":
         doTransactionQuery1(db);
         break;
-//      case "QUERY_2":
-//        doTransactionQuery2(db);
-//        break;
+      case "QUERY_2":
+        doTransactionQuery2(db);
+        break;
       default:
         doTransactionReadModifyWrite(db);
     }
@@ -404,6 +467,25 @@ public class CoreWorkloadExtension extends CoreWorkload {
     }
 
     db.query1(table, query1FilterField, filtervalue, offset, len, fields, new Vector<>());
+  }
+
+  public void doTransactionQuery2(DB db) {
+    // choose filter value 1
+    String filtervalue1 = query2FilterValues1.get(query2FilterValue1IndexGenerator.nextValue().intValue());
+    // choose filter value 1
+    String filtervalue2 = query2FilterValues2.get(query2FilterValue2IndexGenerator.nextValue().intValue());
+
+    HashSet<String> fields = null;
+
+    if (!readallfields) {
+      // read a random field
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+      fields = new HashSet<>();
+      fields.add(fieldname);
+    }
+
+    db.query2(table, query2FilterField1, filtervalue1, query2FilterField2, filtervalue2, fields, new Vector<>());
   }
 
   /**
