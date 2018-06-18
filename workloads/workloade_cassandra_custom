@@ -28,12 +28,12 @@ workload=com.yahoo.ycsb.workloads.CoreWorkload
 
 readallfields=true
 
-readproportion=0.5
-updateproportion=0.5
-scanproportion=0
-insertproportion=0
+readproportion=0
+updateproportion=0
+scanproportion=0.95
+insertproportion=0.05
 
-requestdistribution=zipfian
+requestdistribution=uniform
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/cassandra/workloada_cassandra_custom//log.txt
 statsexportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/N_threads.csv
