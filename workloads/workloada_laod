@@ -37,13 +37,5 @@ requestdistribution=zipfian
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/log.txt
 statsexportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/N_threads.csv
-maxexecutiontime=600
-
+maxexecutiontime=3600
 fieldsize=100
-status.interval=1
-
-bigquery.projectid=cpb100-196812
-bigquery.dataSetName=benchmark
-bigquery.tableName=workloade_cassandra
-bigquery.pathToKey=./key-gcp/admin.json
-bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
