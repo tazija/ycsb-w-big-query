@@ -184,7 +184,10 @@ public class DBWrapper extends DB {
   }
 
   @Override
-  public Status query2(String table, String filterfield1, String filtervalue1, String filterfield2, String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+  public Status query2(
+      String table, String filterfield1, String filtervalue1, String filterfield2, String filtervalue2,
+      Set<String> fields, Vector<HashMap<String, ByteIterator>> result
+  ) {
     try (final TraceScope span = tracer.newScope(scopeStringQuery2)) {
       long ist = measurements.getIntendedtartTimeNs();
       long st = System.nanoTime();

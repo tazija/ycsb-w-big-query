@@ -386,26 +386,26 @@ public class CoreWorkloadExtension extends CoreWorkload {
     }
 
     switch (operation) {
-      case "READ":
-        doTransactionRead(db);
-        break;
-      case "UPDATE":
-        doTransactionUpdate(db);
-        break;
-      case "INSERT":
-        doTransactionInsert(db);
-        break;
-      case "SCAN":
-        doTransactionScan(db);
-        break;
-      case "QUERY_1":
-        doTransactionQuery1(db);
-        break;
-      case "QUERY_2":
-        doTransactionQuery2(db);
-        break;
-      default:
-        doTransactionReadModifyWrite(db);
+    case "READ":
+      doTransactionRead(db);
+      break;
+    case "UPDATE":
+      doTransactionUpdate(db);
+      break;
+    case "INSERT":
+      doTransactionInsert(db);
+      break;
+    case "SCAN":
+      doTransactionScan(db);
+      break;
+    case "QUERY_1":
+      doTransactionQuery1(db);
+      break;
+    case "QUERY_2":
+      doTransactionQuery2(db);
+      break;
+    default:
+      doTransactionReadModifyWrite(db);
     }
 
     return true;
