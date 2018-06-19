@@ -167,26 +167,37 @@ public class CoreWorkloadExtension extends CoreWorkload {
   public static final String QUERY_2_PROPORTION_PROPERTY_DEFAULT = "0";
 
   /**
-   * The name of the property defining the first field to filter by in query 2 workload.
+   * The name of the property for the proportion of transactions that are of query 3 type -
+   * ​JOIN​ with GROUP BY and ORDER BY.
    */
-  public static final String QUERY_2_FILTER_FIELD_1_NAME = "query2filterfield1";
+  public static final String QUERY_3_PROPORTION_PROPERTY = "query3proportion";
+
+  /**
+   * The default proportion of transactions that are of query 3 type.
+   */
+  public static final String QUERY_3_PROPORTION_PROPERTY_DEFAULT = "0";
+
+  /**
+   * The name of the property defining the first field to filter by in query 2 & 3 workloads.
+   */
+  public static final String JOIN_QUERY_FILTER_FIELD_1_NAME = "joinqueryfilterfield1";
 
   /**
    * The name of the property defining existing field values to filter by first field in
-   * query 2 workload.
+   * query 2 & 3 workloads.
    */
-  public static final String QUERY_2_FILTER_FIELD_VALUES_1 = "query2filtervalues1";
+  public static final String JOIN_QUERY_FILTER_FIELD_VALUES_1 = "joinqueryfiltervalues1";
 
   /**
-   * The name of the property defining the second field to filter by in query 2 workload.
+   * The name of the property defining the second field to filter by in query 2 & 3 workloads.
    */
-  public static final String QUERY_2_FILTER_FIELD_2_NAME = "query2filterfield2";
+  public static final String JOIN_QUERY_FILTER_FIELD_2_NAME = "joinqueryfilterfield2";
 
   /**
    * The name of the property defining existing field values to filter by second field in
-   * query 2 workload.
+   * query 2 & 3 workloads.
    */
-  public static final String QUERY_2_FILTER_FIELD_VALUES_2 = "query2filtervalues2";
+  public static final String JOIN_QUERY_FILTER_FIELD_VALUES_2 = "joinqueryfiltervalues2";
 
   private static final Integer NAME = 0;
   private static final Integer TYPE = 1;
@@ -199,12 +210,12 @@ public class CoreWorkloadExtension extends CoreWorkload {
   private List<String> query1FilterValues;
   private NumberGenerator query1FilterValueIndexGenerator;
 
-  private String query2FilterField1;
-  private List<String> query2FilterValues1;
-  private NumberGenerator query2FilterValue1IndexGenerator;
-  private String query2FilterField2;
-  private List<String> query2FilterValues2;
-  private NumberGenerator query2FilterValue2IndexGenerator;
+  private String joinQueryFilterField1;
+  private List<String> joinQueryFilterValues1;
+  private NumberGenerator joinQueryFilterValue1IndexGenerator;
+  private String joinQueryFilterField2;
+  private List<String> joinQueryFilterValues2;
+  private NumberGenerator joinQueryFilterValue2IndexGenerator;
 
   @Override
   public void init(Properties p) throws WorkloadException {
@@ -269,38 +280,38 @@ public class CoreWorkloadExtension extends CoreWorkload {
       query1FilterValueIndexGenerator = new UniformLongGenerator(0, query1FilterValues.size() - 1);
     }
 
-    query2FilterField1 = p.getProperty(QUERY_2_FILTER_FIELD_1_NAME);
-    query2FilterValues1 = Arrays.asList(p.getProperty(QUERY_2_FILTER_FIELD_VALUES_1, "").split(","));
-    query2FilterField2 = p.getProperty(QUERY_2_FILTER_FIELD_2_NAME);
-    query2FilterValues2 = Arrays.asList(p.getProperty(QUERY_2_FILTER_FIELD_VALUES_2, "").split(","));
+    joinQueryFilterField1 = p.getProperty(JOIN_QUERY_FILTER_FIELD_1_NAME);
+    joinQueryFilterValues1 = Arrays.asList(p.getProperty(JOIN_QUERY_FILTER_FIELD_VALUES_1, "").split(","));
+    joinQueryFilterField2 = p.getProperty(JOIN_QUERY_FILTER_FIELD_2_NAME);
+    joinQueryFilterValues2 = Arrays.asList(p.getProperty(JOIN_QUERY_FILTER_FIELD_VALUES_2, "").split(","));
     boolean isQuery2 = Double.parseDouble(
         p.getProperty(QUERY_2_PROPORTION_PROPERTY, QUERY_2_PROPORTION_PROPERTY_DEFAULT)) > 0;
     if (isQuery2) {
-      if (Objects.isNull(query2FilterField1) || query2FilterField1.length() == 0) {
+      if (Objects.isNull(joinQueryFilterField1) || joinQueryFilterField1.length() == 0) {
         throw new WorkloadException(
-            "Query 2 filter field 1 must be specified via " + QUERY_2_FILTER_FIELD_1_NAME + " property"
+            "Query 2 filter field 1 must be specified via " + JOIN_QUERY_FILTER_FIELD_1_NAME + " property"
         );
       }
-      if (Objects.isNull(query2FilterField2) || query2FilterField2.length() == 0) {
+      if (Objects.isNull(joinQueryFilterField2) || joinQueryFilterField2.length() == 0) {
         throw new WorkloadException(
-            "Query 2 filter field 2 must be specified via " + QUERY_2_FILTER_FIELD_2_NAME + " property"
-        );
-      }
-
-      if (query2FilterValues1.size() == 0) {
-        throw new WorkloadException(
-            "Please, specify at least 1 query 2 filter value 1 via " + QUERY_2_FILTER_FIELD_VALUES_1 + " property"
+            "Query 2 filter field 2 must be specified via " + JOIN_QUERY_FILTER_FIELD_2_NAME + " property"
         );
       }
 
-      if (query2FilterValues2.size() == 0) {
+      if (joinQueryFilterValues1.size() == 0) {
         throw new WorkloadException(
-            "Please, specify at least 1 query 2 filter value 2 via " + QUERY_2_FILTER_FIELD_VALUES_2 + " property"
+            "Please, specify at least 1 query 2 filter value 1 via " + JOIN_QUERY_FILTER_FIELD_VALUES_1 + " property"
         );
       }
 
-      query2FilterValue1IndexGenerator = new UniformLongGenerator(0, query2FilterValues1.size() - 1);
-      query2FilterValue2IndexGenerator = new UniformLongGenerator(0, query2FilterValues2.size() - 1);
+      if (joinQueryFilterValues2.size() == 0) {
+        throw new WorkloadException(
+            "Please, specify at least 1 query 2 filter value 2 via " + JOIN_QUERY_FILTER_FIELD_VALUES_2 + " property"
+        );
+      }
+
+      joinQueryFilterValue1IndexGenerator = new UniformLongGenerator(0, joinQueryFilterValues1.size() - 1);
+      joinQueryFilterValue2IndexGenerator = new UniformLongGenerator(0, joinQueryFilterValues2.size() - 1);
     }
 
     operationchooser = createOperationGenerator(p);
@@ -323,6 +334,8 @@ public class CoreWorkloadExtension extends CoreWorkload {
         p.getProperty(QUERY_1_PROPORTION_PROPERTY, QUERY_1_PROPORTION_PROPERTY_DEFAULT));
     final double query2Proportion = Double.parseDouble(
         p.getProperty(QUERY_2_PROPORTION_PROPERTY, QUERY_2_PROPORTION_PROPERTY_DEFAULT));
+    final double query3Proportion = Double.parseDouble(
+        p.getProperty(QUERY_3_PROPORTION_PROPERTY, QUERY_3_PROPORTION_PROPERTY_DEFAULT));
 
     if (query1Proportion > 0) {
       operationchooser.addValue(query1Proportion, "QUERY_1");
@@ -330,6 +343,10 @@ public class CoreWorkloadExtension extends CoreWorkload {
 
     if (query2Proportion > 0) {
       operationchooser.addValue(query2Proportion, "QUERY_2");
+    }
+
+    if (query3Proportion > 0) {
+      operationchooser.addValue(query3Proportion, "QUERY_3");
     }
 
     return operationchooser;
@@ -404,6 +421,9 @@ public class CoreWorkloadExtension extends CoreWorkload {
     case "QUERY_2":
       doTransactionQuery2(db);
       break;
+    case "QUERY_3":
+      doTransactionQuery3(db);
+      break;
     default:
       doTransactionReadModifyWrite(db);
     }
@@ -471,9 +491,9 @@ public class CoreWorkloadExtension extends CoreWorkload {
 
   public void doTransactionQuery2(DB db) {
     // choose filter value 1
-    String filtervalue1 = query2FilterValues1.get(query2FilterValue1IndexGenerator.nextValue().intValue());
+    String filtervalue1 = joinQueryFilterValues1.get(joinQueryFilterValue1IndexGenerator.nextValue().intValue());
     // choose filter value 1
-    String filtervalue2 = query2FilterValues2.get(query2FilterValue2IndexGenerator.nextValue().intValue());
+    String filtervalue2 = joinQueryFilterValues2.get(joinQueryFilterValue2IndexGenerator.nextValue().intValue());
 
     HashSet<String> fields = null;
 
@@ -485,7 +505,26 @@ public class CoreWorkloadExtension extends CoreWorkload {
       fields.add(fieldname);
     }
 
-    db.query2(table, query2FilterField1, filtervalue1, query2FilterField2, filtervalue2, fields, new Vector<>());
+    db.query2(table, joinQueryFilterField1, filtervalue1, joinQueryFilterField2, filtervalue2, fields, new Vector<>());
+  }
+
+  public void doTransactionQuery3(DB db) {
+    // choose filter value 1
+    String filtervalue1 = joinQueryFilterValues1.get(joinQueryFilterValue1IndexGenerator.nextValue().intValue());
+    // choose filter value 1
+    String filtervalue2 = joinQueryFilterValues2.get(joinQueryFilterValue2IndexGenerator.nextValue().intValue());
+
+    HashSet<String> fields = null;
+
+    if (!readallfields) {
+      // read a random field
+      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+
+      fields = new HashSet<>();
+      fields.add(fieldname);
+    }
+
+    db.query3(table, joinQueryFilterField1, filtervalue1, joinQueryFilterField2, filtervalue2, fields, new Vector<>());
   }
 
   /**
