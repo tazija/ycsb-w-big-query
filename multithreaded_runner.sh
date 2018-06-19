@@ -7,7 +7,7 @@ function printHelp () {
   echo "  ./multithreaded_runner.sh -h|--help (print this message)"
   echo "    -w <workload> - workload name to launch"
   echo "    -d <workload> - database use. Examples: 'couchbase2' | 'cassandra-cql' | ..."
-  echo "    -i <client_instances_count> - client instance count. currently supported values are 1, 2, 3, 4, 5, 6, 7;"
+  echo "    -i <client_instances_count> - client instance count. currently supported values are 1, 2, 3, 4, 5, 6, 7, 10;"
   echo "    -r <result_file_name> - [Optional] result file name. If not specified, defaults to 'results'"
   echo "    -p <ycsb_parameter> - a set of ycsb extra parameters to add. Should be in format '-p name=value'"
 }
@@ -58,8 +58,10 @@ elif [ "${INSTANCES}" -eq "6" ]; then
     THREADS=(10 20 30 40 50 60 70 80 100 120)
 elif [ "${INSTANCES}" -eq "7" ]; then
     THREADS=(5 10 15 20 25 30 40 50 60 70 80 100)
+elif [ "${INSTANCES}" -eq "10" ]; then
+    THREADS=(5 10 15 20 25 30 40 50 60 70)
 else
-    echo "Instances number is either not specified or not valid (valid values are 1, 2, 3, 4, 5, 6, 7). Aborting evaluation"
+    echo "Instances number is either not specified or not valid (valid values are 1, 2, 3, 4, 5, 6, 7, 10). Aborting evaluation"
     exit 1;
 fi
 
