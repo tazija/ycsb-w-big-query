@@ -34,7 +34,7 @@ requestdistribution=zipfian
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/mongodb/workloada/log.txt
 statsexportfile=./results/4-nodes/mongodb/workloada/results.csv
-maxexecutiontime=600
+#maxexecutiontime=600
 status.interval=1
 
 fieldsize=100
