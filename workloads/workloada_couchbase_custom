@@ -22,8 +22,8 @@
 #   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
 #   Request distribution: zipfian
 
-recordcount=100000000
-operationcount=100000000
+recordcount=50000000
+operationcount=50000000
 workload=com.yahoo.ycsb.workloads.CoreWorkload
 
 readallfields=true
@@ -51,6 +51,7 @@ measurementtype=timeseries+csv
 exportfile=./results/4-nodes/couchbase/workloada_couchbase_custom/log.txt
 statsexportfile=./results/4-nodes/couchbase/workloada_couchbase_custom/results.csv
 maxexecutiontime=600
+stats.interval=1
 
 
 bigquery.projectid=cpb100-196812
