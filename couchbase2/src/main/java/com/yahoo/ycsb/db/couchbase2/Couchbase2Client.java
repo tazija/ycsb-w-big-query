@@ -671,11 +671,11 @@ public class Couchbase2Client extends DB {
                        String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
       String query = "SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `" + bucketName + "` c2 " +
-          "INNER JOIN `" + bucketName + "` o2 ON KEYS c2.order_list WHERE c2.address.zip = $1 AND o2.month = $2 " +
+          "INNER JOIN `" + bucketName + "` o2 ON KEYS c2.order_list WHERE c2.address.zip = '$1' AND o2.month = '$2' " +
           "GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)";
       return query(() -> N1qlQuery.parameterized(
           query,
-          JsonArray.from(filterfield1, filtervalue1, filterfield2, filtervalue2),
+          JsonArray.from(filtervalue1, filtervalue2),
           N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
       ), result);
     } catch (Exception ex) {
@@ -690,11 +690,11 @@ public class Couchbase2Client extends DB {
     try {
       String query = "SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `" + bucketName + "` c2 " +
           "INNER JOIN `" + bucketName + "` o2 ON (META(id) IN c2.order_list) " +
-          "WHERE c2.address.zip = $1 AND o2.month = $2 " +
+          "WHERE c2.address.zip = '$1' AND o2.month = '$2' " +
           "GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)";
       return query(() -> N1qlQuery.parameterized(
           query,
-          JsonArray.from(filterfield1, filtervalue1, filterfield2, filtervalue2),
+          JsonArray.from(filtervalue1, filtervalue2),
           N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
       ), result);
     } catch (Exception ex) {
