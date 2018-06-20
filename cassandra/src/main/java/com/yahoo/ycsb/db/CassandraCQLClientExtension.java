@@ -66,7 +66,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
       new ConcurrentHashMap<>();
   private static ConcurrentMap<Set<String>, PreparedStatement> updateStmts =
       new ConcurrentHashMap<>();
-  private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
+  private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ANY;
   private static boolean trace = false;
 
   /**
