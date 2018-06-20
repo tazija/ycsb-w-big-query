@@ -412,6 +412,54 @@ public class MongoDbClient extends DB {
     }
   }
 
+  @Override
+  public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount,
+                       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    MongoCursor<Document> cursor = null;
+    try {
+      MongoCollection<Document> collection = database.getCollection(table);
+      Document query1 = new Document(filterfield, filtervalue);
+
+      FindIterable<Document> findIterable = collection.find(query1).skip(offset).limit(recordcount);
+
+      if (fields != null) {
+        Document projection = new Document();
+        for (String field : fields) {
+          projection.put(field, INCLUDE);
+        }
+        findIterable.projection(projection);
+      }
+
+      cursor = findIterable.iterator();
+
+      if (!cursor.hasNext()) {
+        System.err.println("Nothing found in query1 for value " + filtervalue);
+        return Status.ERROR;
+      }
+
+      result.ensureCapacity(recordcount);
+
+      while (cursor.hasNext()) {
+        HashMap<String, ByteIterator> resultMap =
+            new HashMap<String, ByteIterator>();
+
+        Document obj = cursor.next();
+        fillMap(resultMap, obj);
+
+        result.add(resultMap);
+      }
+
+      return Status.OK;
+    } catch (Exception e) {
+      System.err.println(e.toString());
+      return Status.ERROR;
+    } finally {
+      if (cursor != null) {
+        cursor.close();
+      }
+    }
+  }
+
   /**
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
