@@ -698,7 +698,7 @@ public class Couchbase2Client extends DB {
           N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
       ), result);
     } catch (Exception ex) {
-      System.err.println("Filter values : " + filterfield1 + " and " + filtervalue2);
+      System.err.println("Filter values : " + filtervalue1 + " and " + filtervalue2);
       ex.printStackTrace();
       return Status.ERROR;
     }
