@@ -49,7 +49,12 @@ import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.env.CouchbaseEnvironment;
 import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
 import com.couchbase.client.java.error.TemporaryFailureException;
-import com.couchbase.client.java.query.*;
+import com.couchbase.client.java.query.AsyncN1qlQueryResult;
+import com.couchbase.client.java.query.AsyncN1qlQueryRow;
+import com.couchbase.client.java.query.N1qlParams;
+import com.couchbase.client.java.query.N1qlQuery;
+import com.couchbase.client.java.query.N1qlQueryResult;
+import com.couchbase.client.java.query.N1qlQueryRow;
 import com.couchbase.client.java.transcoder.JacksonTransformers;
 import com.couchbase.client.java.util.Blocking;
 import com.yahoo.ycsb.ByteIterator;
@@ -66,7 +71,15 @@ import rx.functions.Func1;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -632,11 +645,11 @@ public class Couchbase2Client extends DB {
       if (fields == null || fields.isEmpty()) {
         String query = "SELECT RAW meta().id FROM `" +  bucketName
             + "` WHERE " + filterfield + " = '$1' OFFSET $2 LIMIT $3";
-        return queryAllFields(() -> N1qlQuery.parameterized(
+        return query(() -> N1qlQuery.parameterized(
             query,
             JsonArray.from(filtervalue, offset, recordcount),
             N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
-        ), recordcount, result);
+        ), result);
       } else {
         String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
             + "` WHERE " + filterfield + " = '$1' OFFSET $2 LIMIT $3";
@@ -647,6 +660,43 @@ public class Couchbase2Client extends DB {
             N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
         ), recordcount, fields, result);
       }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  @Override
+  public Status query2(String table, String filterfield1, String filtervalue1, String filterfield2,
+                       String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      String query = "SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `" + bucketName + "` c2 " +
+          "INNER JOIN `" + bucketName + "` o2 ON KEYS c2.order_list WHERE c2.address.zip = $1 AND o2.month = $2 " +
+          "GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)";
+      return query(() -> N1qlQuery.parameterized(
+          query,
+          JsonArray.from(filterfield1, filtervalue1, filterfield2, filtervalue2),
+          N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+      ), result);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      return Status.ERROR;
+    }
+  }
+
+  @Override
+  public Status query3(String table, String filterfield1, String filtervalue1, String filterfield2,
+                       String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    try {
+      String query = "SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `" + bucketName + "` c2 " +
+          "INNER JOIN `" + bucketName + "` o2 ON (META(id) IN c2.order_list) " +
+          "WHERE c2.address.zip = $1 AND o2.month = $2 " +
+          "GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)";
+      return query(() -> N1qlQuery.parameterized(
+          query,
+          JsonArray.from(filterfield1, filtervalue1, filterfield2, filtervalue2),
+          N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
+      ), result);
     } catch (Exception ex) {
       ex.printStackTrace();
       return Status.ERROR;
@@ -710,6 +760,31 @@ public class Couchbase2Client extends DB {
         });
 
     result.addAll(data);
+    return Status.OK;
+  }
+
+  /**
+   * Performs the query operation without additional fields data load.
+   *
+   * @param querySupplier N1QL query to execute.
+   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @return The result of the operation.
+   */
+  private Status query(
+      final Supplier<N1qlQuery> querySupplier, final Vector<HashMap<String, ByteIterator>> result
+  ) {
+    bucket.async()
+        .query(querySupplier.get())
+        .doOnError(Throwable::printStackTrace)
+        .flatMap(AsyncN1qlQueryResult::rows)
+        .toBlocking()
+        .forEach(row -> {
+            String id = new String(row.byteValue()).trim();
+            HashMap<String, ByteIterator> tuple = new HashMap<>();
+            tuple.put(id, new StringByteIterator(id));
+            result.add(tuple);
+          });
+
     return Status.OK;
   }
 
