@@ -18,7 +18,7 @@
 # Workload QUERY 1 ​ ( Filter​ with OFFSET and LIMIT)​
 #   Application example: paginated search
 #
-#   query 1/update/insert ratio: 90/5/5
+#   query/update/insert ratio: 100/0/0
 #   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
 #   Request distribution: zipfian
 
