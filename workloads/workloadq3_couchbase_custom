@@ -1,0 +1,63 @@
+# Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+
+# Yahoo! Cloud System Benchmark
+# Workload QUERY 1 ​ ( Filter​ with OFFSET and LIMIT)​
+#   Application example: paginated search
+#
+#   query/update/insert ratio: 100/0/0
+#   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+#   Request distribution: zipfian
+
+recordcount=10000000
+operationcount=10000000
+workload=com.yahoo.ycsb.workloads.CoreWorkloadExtension
+readallfields=true
+readproportion=0
+updateproportion=0
+scanproportion=0
+insertproportion=0
+requestdistribution=zipfian
+table=video
+fieldcount=4
+dataintegrity=true
+model=added_date:STRING;description:STRING;size:DOUBLE;title:STRING;
+threadcount=1
+maxexecutiontime=600
+measurementtype=timeseries+csv
+#measurementtype=histogram
+#exportfile=/work/YCSB/no.txt
+#statsexportfile=/work/YCSB/test.csv
+status.interval=1
+
+# couchbase settings
+couchbase.bucket=ycsb-workload-a
+couchbase.host=54.91.214.196
+couchbase.password=<to_be_provided>
+
+# bigquery settings
+bigquery.projectid=cpb100-196812
+bigquery.dataSetName=benchmark
+bigquery.tableName=workloadq3_couchbase_v1_5clients
+bigquery.pathToKey=./key-gcp/admin.json
+bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
+
+# query 3 settings
+query2proportion=1.0
+joinqueryfilterfield1=c2.address.zip
+joinqueryfiltervalues1=00040, 02838, 04085, 04791, 05683-8063, 07415-8288, 08587-6084, 09729-7986, 10599, 10681, 11070, 13027-5445, 13651, 17537-4668, 18027, 19798, 20398, 20843, 20993, 21317, 21526-7353, 21869-2131, 26681, 27917, 28012-2414, 28392-3620, 28934-6965, 29276-8427, 29740-7716, 33129-4712, 33339, 34027-4491, 34307-2629, 35158-5189, 35429, 36206-7345, 41046, 41538-9922, 42635-2457, 43622-4104, 44167-9121, 44901-2627, 45154, 46250-1937, 47496, 48840, 49121-5959, 50659-6297, 51761-6770, 52725-6816, 53491-3255, 54712, 55319-4281, 56042-7741, 56864, 58190, 58918-2176, 59688, 60290, 60696-9196, 61259-5637, 64127, 65060-1498, 65065, 66648-5732, 67618, 68352-2692, 68743-9607, 68865-0651, 70120-8053, 70137-7375, 70594-4710, 72299-7808, 75582-1924, 76244, 79190-6147, 80162, 80192-3677, 84217, 84855, 85076, 85104-5336, 85195-1549, 85374-0905, 87749-2288, 89651, 89710-5771, 90929, 91531, 91698, 91877, 92679-3319, 92806-7080, 93456-8096, 94129-0772, 94652, 97117-3928, 99455-0013, 99742, 99914-3641
+joinqueryfilterfield2=o2.month
+joinqueryfiltervalues2=1,2,3,4,5,6,7,8,9,10,11,12
