@@ -286,7 +286,9 @@ public class CoreWorkloadExtension extends CoreWorkload {
     joinQueryFilterValues2 = Arrays.asList(p.getProperty(JOIN_QUERY_FILTER_FIELD_VALUES_2, "").split(","));
     boolean isQuery2 = Double.parseDouble(
         p.getProperty(QUERY_2_PROPORTION_PROPERTY, QUERY_2_PROPORTION_PROPERTY_DEFAULT)) > 0;
-    if (isQuery2) {
+    boolean isQuery3 = Double.parseDouble(
+        p.getProperty(QUERY_3_PROPORTION_PROPERTY, QUERY_3_PROPORTION_PROPERTY_DEFAULT)) > 0;
+    if (isQuery2 || isQuery3) {
       if (Objects.isNull(joinQueryFilterField1) || joinQueryFilterField1.length() == 0) {
         throw new WorkloadException(
             "Query 2 filter field 1 must be specified via " + JOIN_QUERY_FILTER_FIELD_1_NAME + " property"
