@@ -28,6 +28,8 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -82,7 +84,7 @@ public class CassandraCQLClient extends DB {
   private static AtomicReference<PreparedStatement> deleteStmt =
       new AtomicReference<PreparedStatement>();
 
-  private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ANY;
+  private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ANY;
 
   public static final String YCSB_KEY = "y_id";
@@ -97,7 +99,7 @@ public class CassandraCQLClient extends DB {
 
   public static final String READ_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.readconsistencylevel";
-  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ANY";
+  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.writeconsistencylevel";
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ANY";
@@ -173,9 +175,11 @@ public class CassandraCQLClient extends DB {
 
         if ((username != null) && !username.isEmpty()) {
           cluster = Cluster.builder().withCredentials(username, password)
+              .withLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
               .withPort(Integer.valueOf(port)).addContactPoints(hosts).build();
         } else {
           cluster = Cluster.builder().withPort(Integer.valueOf(port))
+              .withLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
               .addContactPoints(hosts).build();
         }
 
@@ -330,6 +334,7 @@ public class CassandraCQLClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
+      System.out.println(e.getMessage());
       logger.error(MessageFormatter.format("Error reading key: {}", key).getMessage(), e);
       return Status.ERROR;
     }
