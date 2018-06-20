@@ -97,10 +97,10 @@ public class CassandraCQLClient extends DB {
 
   public static final String READ_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.readconsistencylevel";
-  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ANY";
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.writeconsistencylevel";
-  public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+  public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ANY";
 
   public static final String MAX_CONNECTIONS_PROPERTY =
       "cassandra.maxconnections";
