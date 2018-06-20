@@ -1,6 +1,3 @@
-# Copyright (c) 2010 Yahoo! Inc. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you
 # may not use this file except in compliance with the License. You
 # may obtain a copy of the License at
 #
@@ -22,8 +19,8 @@
 #   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
 #   Request distribution: zipfian
 
-recordcount=100000000
-operationcount=100000000
+recordcount=50000000
+operationcount=50000000
 workload=com.yahoo.ycsb.workloads.CoreWorkload
 
 readallfields=true
@@ -36,7 +33,14 @@ insertproportion=0
 requestdistribution=zipfian
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/mongodb/workloada/log.txt
-statsexportfile=./results/4-nodes/mongodb/workloada/N_threads.csv
-maxexecutiontime=600
+statsexportfile=./results/4-nodes/mongodb/workloada/results.csv
+#maxexecutiontime=600
+status.interval=1
 
 fieldsize=100
+
+bigquery.projectid=cpb100-196812
+bigquery.dataSetName=benchmark
+bigquery.tableName=workloada_mongodb_v1_4clients
+bigquery.pathToKey=./key-gcp/admin.json
+bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
