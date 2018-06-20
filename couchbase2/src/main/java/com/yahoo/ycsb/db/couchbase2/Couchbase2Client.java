@@ -675,7 +675,7 @@ public class Couchbase2Client extends DB {
           "GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)";
       return query(() -> N1qlQuery.parameterized(
           query,
-          JsonArray.from(filterfield1, filtervalue1, filterfield2, filtervalue2),
+          JsonArray.from(filtervalue1, filtervalue2),
           N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
       ), result);
     } catch (Exception ex) {
@@ -698,6 +698,7 @@ public class Couchbase2Client extends DB {
           N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
       ), result);
     } catch (Exception ex) {
+      System.err.println("Filter values : " + filterfield1 + " and " + filtervalue2);
       ex.printStackTrace();
       return Status.ERROR;
     }
