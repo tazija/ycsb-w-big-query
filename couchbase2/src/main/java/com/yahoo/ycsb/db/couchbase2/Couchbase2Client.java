@@ -615,11 +615,11 @@ public class Couchbase2Client extends DB {
       final Vector<HashMap<String, ByteIterator>> result) {
     try {
       if (fields == null || fields.isEmpty()) {
-        return queryAllFields(() -> N1qlQuery.parameterized(
+        return query(() -> N1qlQuery.parameterized(
             scanAllQuery,
             JsonArray.from(formatId(table, startkey), recordcount),
             N1qlParams.build().adhoc(adhoc).maxParallelism(maxParallelism)
-        ), recordcount, result);
+        ), result);
       } else {
         String scanSpecQuery = "SELECT " + joinFields(fields) + " FROM `" + bucketName
             + "` WHERE meta().id >= '$1' LIMIT $2";
@@ -689,7 +689,7 @@ public class Couchbase2Client extends DB {
                        String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
       String query = "SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `" + bucketName + "` c2 " +
-          "INNER JOIN `" + bucketName + "` o2 ON (META() IN c2.order_list) " +
+          "INNER JOIN `" + bucketName + "` o2 ON (META(o2).id IN c2.order_list) " +
           "WHERE c2.address.zip = $1 AND o2.month = $2 " +
           "GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)";
       return query(() -> N1qlQuery.parameterized(
