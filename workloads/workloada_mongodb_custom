@@ -41,6 +41,6 @@ fieldsize=100
 
 bigquery.projectid=cpb100-196812
 bigquery.dataSetName=benchmark
-bigquery.tableName=workloada_mongodb_v1_4clients
+bigquery.tableName=workloada_mongodb_v4_5clients
 bigquery.pathToKey=./key-gcp/admin.json
 bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
