@@ -55,9 +55,6 @@ elif [ "${INSTANCES}" -eq "4" ]; then
 elif [ "${INSTANCES}" -eq "5" ]; then
     THREADS=(10 20 30 40 50 60 70 80 100 120 140)
 #    THREADS=(20 40 60 80 100 120)
-elif [ "${INSTANCES}" -eq "-5" ]; then
-#    THREADS=(10 20 30 40 50 60 70 80 100 120 140)
-    THREADS=(20 40 60 80 100 120)
 elif [ "${INSTANCES}" -eq "6" ]; then
     THREADS=(10 20 30 40 50 60 70 80 100 120)
 elif [ "${INSTANCES}" -eq "7" ]; then

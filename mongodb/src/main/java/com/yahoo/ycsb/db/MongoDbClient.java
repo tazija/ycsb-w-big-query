@@ -374,13 +374,15 @@ public class MongoDbClient extends DB {
       FindIterable<Document> findIterable =
           collection.find(query).sort(sort).limit(recordcount);
 
-      if (fields != null) {
-        Document projection = new Document();
-        for (String fieldName : fields) {
-          projection.put(fieldName, INCLUDE);
-        }
-        findIterable.projection(projection);
-      }
+      Document projection = new Document("_id", INCLUDE);
+      findIterable.projection(projection);
+//      if (fields != null) {
+//        Document projection = new Document();
+//        for (String fieldName : fields) {
+//          projection.put(fieldName, INCLUDE);
+//        }
+//        findIterable.projection(projection);
+//      }
 
       cursor = findIterable.iterator();
 
