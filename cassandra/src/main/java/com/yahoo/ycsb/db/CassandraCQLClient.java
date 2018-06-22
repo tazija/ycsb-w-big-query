@@ -370,16 +370,8 @@ public class CassandraCQLClient extends DB {
 
       // Prepare statement on demand
       if (stmt == null) {
-        Select.Builder selectBuilder;
-
-        if (fields == null) {
-          selectBuilder = QueryBuilder.select().all();
-        } else {
-          selectBuilder = QueryBuilder.select();
-          for (String col : fields) {
-            ((Select.Selection) selectBuilder).column(col);
-          }
-        }
+        Select.Builder selectBuilder = QueryBuilder.select();
+        ((Select.Selection) selectBuilder).column("y_id");
 
         Select selectStmt = selectBuilder.from(table);
 
