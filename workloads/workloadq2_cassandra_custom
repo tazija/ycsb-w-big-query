@@ -1,0 +1,56 @@
+# Copyright (c) 2010 Yahoo! Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you
+# may not use this file except in compliance with the License. You
+# may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing
+# permissions and limitations under the License. See accompanying
+# LICENSE file.
+
+
+# Yahoo! Cloud System Benchmark
+# Workload QUERY 1 ​ ( Filter​ with OFFSET and LIMIT)​
+#   Application example: paginated search
+#
+#   query/update/insert ratio: 100/0/0
+#   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+#   Request distribution: zipfian
+
+recordcount=10000000
+operationcount=10000000
+workload=com.yahoo.ycsb.workloads.CoreWorkloadExtension
+readallfields=true
+readproportion=0
+updateproportion=0
+scanproportion=0
+insertproportion=0
+requestdistribution=zipfian
+table=customer_orders_join
+dataintegrity=true
+model=added_date:STRING;description:STRING;size:DOUBLE;title:STRING;
+maxexecutiontime=600
+measurementtype=timeseries+csv
+#exportfile=/work/YCSB/no.txt
+#statsexportfile=/work/YCSB/test.csv
+status.interval=1
+
+
+# bigquery settings
+bigquery.projectid=cpb100-196812
+bigquery.dataSetName=benchmark
+bigquery.tableName=workloadq2_cassandra_v1_5clients
+bigquery.pathToKey=./key-gcp/admin.json
+bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
+
+# query 2 settings
+query2proportion=1.0
+joinqueryfilterfield1=zip
+joinqueryfiltervalues1=00040, 02838, 04085, 04791, 10599, 10681, 11070, 13651, 18027, 19798, 20398, 20843, 20993, 21317, 26681, 27917, 33339, 35429, 41046, 45154, 47496, 48840, 54712, 56864, 58190, 59688, 60290, 64127, 65065, 67618, 76244, 80162, 84217, 84855, 85076, 89651, 90929, 91531, 91698, 91877, 94652, 99742
+joinqueryfilterfield2=month
+joinqueryfiltervalues2=January,February,March,April,May,June,July,August,September,October,November,December

@@ -306,7 +306,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
       PreparedStatement stmt = (fields == null) ? readAllStmt.get() : readStmts.get(fields);
 
       if (stmt == null) {
-        stmt = session.prepare("SELECT zip,month,SUM(sale_price) FROM " + table +
+        stmt = session.prepare("SELECT zip, month, SUM(sale_price) FROM " + table +
             " WHERE zip = :zip AND  month = :month ;");
 
         stmt.setConsistencyLevel(ConsistencyLevel.ONE);
@@ -324,7 +324,12 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         }
       }
 
-      ResultSet rs = session.execute(stmt.bind(filtervalue1, filtervalue2));
+      ResultSet rs = session.execute(stmt.bind().setString("zip", filtervalue1)
+          .setString("month", filtervalue2));
+
+      if (rs.isExhausted()) {
+        return Status.NOT_FOUND;
+      }
 
       return Status.OK;
 
