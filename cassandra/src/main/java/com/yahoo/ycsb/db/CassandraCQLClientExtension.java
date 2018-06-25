@@ -240,19 +240,17 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
   @Override
   public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    fields = new HashSet<>();
+    fields.add("id");
     try {
-      PreparedStatement stmt = (fields == null) ? readAllStmt.get() : readStmts.get(fields);
+      PreparedStatement stmt = readStmts.get(fields);
 
       if (stmt == null) {
         Select.Builder selectBuilder;
 
-        if (fields == null) {
-          selectBuilder = QueryBuilder.select().all();
-        } else {
-          selectBuilder = QueryBuilder.select();
-          for (String col : fields) {
-            ((Select.Selection) selectBuilder).column(col);
-          }
+        selectBuilder = QueryBuilder.select();
+        for (String col : fields) {
+          ((Select.Selection) selectBuilder).column(col);
         }
 
         stmt = session.prepare(selectBuilder.from(table)
@@ -264,9 +262,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
           stmt.enableTracing();
         }
 
-        PreparedStatement preparedStatement = (fields == null) ?
-            readAllStmt.getAndSet(stmt) :
-            readStmts.putIfAbsent(new HashSet<>(fields), stmt);
+        PreparedStatement preparedStatement = readStmts.putIfAbsent(new HashSet<>(fields), stmt);
 
         if (preparedStatement != null) {
           stmt = preparedStatement;
