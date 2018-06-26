@@ -414,6 +414,10 @@ public class MongoDbClient extends DB {
     }
   }
 
+//  Couchbase Query: ​SELECT RAW meta().id FROM `<bucket_name>` WHERE
+//  address.geo_region = “<value>” OFFSET <num> LIMIT <num>
+
+//  Couchbase Index: ​create index ix2 on `<bucket_name>` (address.geo_region)
   @Override
   public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
@@ -424,13 +428,15 @@ public class MongoDbClient extends DB {
 
       FindIterable<Document> findIterable = collection.find(query1).skip(offset).limit(recordcount);
 
-      if (fields != null) {
-        Document projection = new Document();
-        for (String field : fields) {
-          projection.put(field, INCLUDE);
-        }
-        findIterable.projection(projection);
-      }
+      Document projection = new Document("_id", INCLUDE);
+      findIterable.projection(projection);
+//      if (fields != null) {
+//        Document projection = new Document();
+//        for (String fieldName : fields) {
+//          projection.put(fieldName, INCLUDE);
+//        }
+//        findIterable.projection(projection);
+//      }
 
       cursor = findIterable.iterator();
 
