@@ -22,20 +22,23 @@
 #   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
 #   Request distribution: zipfian
 
-recordcount=50000000
-operationcount=50000000
+recordcount=125000000
+operationcount=125000000
 workload=com.yahoo.ycsb.workloads.CoreWorkload
 
 readallfields=true
 
-readproportion=0.5
-updateproportion=0.5
+readproportion=1
+updateproportion=0
 scanproportion=0
 insertproportion=0
 
-requestdistribution=zipfian
+requestdistribution=uniform
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/log.txt
 statsexportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/N_threads.csv
-maxexecutiontime=3600
+maxexecutiontime=600
+
 fieldsize=100
+status.interval=1
+
