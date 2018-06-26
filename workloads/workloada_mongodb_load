@@ -32,8 +32,8 @@ insertproportion=0
 
 requestdistribution=zipfian
 measurementtype=timeseries+csv
-exportfile=./results/4-nodes/mongodb/workloada/load-log.txt
-statsexportfile=./results/4-nodes/mongodb/workloada/load-results.csv
+exportfile=./results/4-nodes/mongodb/workloads/load-log.txt
+statsexportfile=./results/4-nodes/mongodb/workloads/load-results.csv
 status.interval=1
 
 fieldsize=100
