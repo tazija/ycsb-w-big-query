@@ -470,7 +470,7 @@ public class CoreWorkloadExtension extends CoreWorkload {
 
   public void doTransactionQuery1(DB db) {
     // choose filter value
-    String filtervalue = query1FilterValues.get(query1FilterValueIndexGenerator.nextValue().intValue());
+    String filtervalue = query1FilterValues.get(query1FilterValueIndexGenerator.nextValue().intValue()).trim();
 
     // choose a random query offset
     int offset = queryoffset.nextValue().intValue();
@@ -493,9 +493,9 @@ public class CoreWorkloadExtension extends CoreWorkload {
 
   public void doTransactionQuery2(DB db) {
     // choose filter value 1
-    String filtervalue1 = joinQueryFilterValues1.get(joinQueryFilterValue1IndexGenerator.nextValue().intValue());
+    String filtervalue1 = joinQueryFilterValues1.get(joinQueryFilterValue1IndexGenerator.nextValue().intValue()).trim();
     // choose filter value 1
-    String filtervalue2 = joinQueryFilterValues2.get(joinQueryFilterValue2IndexGenerator.nextValue().intValue());
+    String filtervalue2 = joinQueryFilterValues2.get(joinQueryFilterValue2IndexGenerator.nextValue().intValue()).trim();
 
     HashSet<String> fields = null;
 
@@ -512,9 +512,9 @@ public class CoreWorkloadExtension extends CoreWorkload {
 
   public void doTransactionQuery3(DB db) {
     // choose filter value 1
-    String filtervalue1 = joinQueryFilterValues1.get(joinQueryFilterValue1IndexGenerator.nextValue().intValue());
+    String filtervalue1 = joinQueryFilterValues1.get(joinQueryFilterValue1IndexGenerator.nextValue().intValue()).trim();
     // choose filter value 1
-    String filtervalue2 = joinQueryFilterValues2.get(joinQueryFilterValue2IndexGenerator.nextValue().intValue());
+    String filtervalue2 = joinQueryFilterValues2.get(joinQueryFilterValue2IndexGenerator.nextValue().intValue()).trim();
 
     HashSet<String> fields = null;
 
