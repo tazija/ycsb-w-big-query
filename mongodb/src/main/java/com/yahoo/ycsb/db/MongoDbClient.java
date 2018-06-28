@@ -24,10 +24,12 @@
  */
 package com.yahoo.ycsb.db;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -47,6 +49,7 @@ import org.bson.Document;
 import org.bson.types.Binary;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -468,11 +471,91 @@ public class MongoDbClient extends DB {
     }
   }
 
+//  Couchbase Query: ​SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `bucket-1` c2
+//  INNER JOIN orders o2 ON KEYS c2.order_list WHERE c2.address.zip = “value” AND o2.month =
+//  “value” GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)
+
+//  Couchbase Index: ​create index ix7 on `bucket-1`(address.zip, month, order_list, sale_price)
+  @Override
+  public Status query2(String table, String filterfield1, String filtervalue1, String filterfield2,
+                       String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+    String addressZip = filterfield1;
+    String month = filterfield2;
+    String orderList = "order_list";
+    MongoCursor<Document> cursor = null;
+    try {
+      MongoCollection<Document> customerCollection = database.getCollection("customer");
+      MongoCollection<Document> orderCollection = database.getCollection("order");
+      Document query1 = new Document(addressZip, filtervalue1);
+
+      FindIterable<Document> findIterable = customerCollection.find(query1);
+
+      Document projection = new Document();
+      projection.put(addressZip, INCLUDE);
+      projection.put(orderList, INCLUDE);
+      findIterable.projection(projection);
+//      if (fields != null) {
+//        Document projection = new Document();
+//        for (String fieldName : fields) {
+//          projection.put(fieldName, INCLUDE);
+//        }
+//        findIterable.projection(projection);
+//      }
+
+      cursor = findIterable.iterator();
+
+      if (!cursor.hasNext()) {
+//        System.err.println("Nothing found in query1 for value " + filtervalue);
+        return Status.NOT_FOUND;
+      }
+
+      while (cursor.hasNext()) {
+        Document customer = cursor.next();
+        if (customer.get(orderList) != null) {
+          Document condition1 = new Document("_id", new BasicDBObject("$in", customer.get(orderList)));
+          Document condition2 = new Document(month, filtervalue2);
+
+          AggregateIterable<Document> ordersAggregate = orderCollection.aggregate(Arrays.asList(
+              new Document("$match", new Document("$and", Arrays.asList(condition1, condition2))),
+              new Document("$group", new Document("_id", null).append("SUM", new BasicDBObject("$sum", "$sale_price")))
+          ));
+
+          float sum = 0;
+          for (Document order : ordersAggregate) {
+            if (order.get("SUM") != null) {
+              sum += Float.parseFloat(order.get("SUM").toString());
+            }
+          }
+
+          HashMap<String, ByteIterator> resultMap =
+              new HashMap<String, ByteIterator>();
+
+          Document obj = new Document();
+          obj.put(addressZip, filtervalue1);
+          obj.put(month, filtervalue2);
+          obj.put("sum", String.valueOf(sum));
+          fillMap(resultMap, obj);
+
+          result.add(resultMap);
+        }
+      }
+
+      return Status.OK;
+    } catch (Exception e) {
+      System.err.println(e.toString());
+      return Status.ERROR;
+    } finally {
+      if (cursor != null) {
+        cursor.close();
+      }
+    }
+  }
+
   /**
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
