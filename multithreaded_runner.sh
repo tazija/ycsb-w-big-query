@@ -61,6 +61,8 @@ elif [ "${INSTANCES}" -eq "7" ]; then
     THREADS=(5 10 15 20 25 30 40 50 60 70 80 100)
 elif [ "${INSTANCES}" -eq "10" ]; then
     THREADS=(5 10 15 20 25 30 40 50 60 70)
+elif [ "${INSTANCES}" -eq "0" ]; then
+    THREADS=(50 80 120 140)
 else
     echo "Instances number is either not specified or not valid (valid values are 1, 2, 3, 4, 5, 6, 7, 10). Aborting evaluation"
     exit 1;
