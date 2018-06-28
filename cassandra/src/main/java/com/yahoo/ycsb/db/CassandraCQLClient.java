@@ -210,7 +210,7 @@ public class CassandraCQLClient extends DB {
             READ_TIMEOUT_MILLIS_PROPERTY);
         if (readTimoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
-              .setReadTimeoutMillis(Integer.valueOf(readTimoutMillis));
+              .setReadTimeoutMillis(24000);
         }
 
         Metadata metadata = cluster.getMetadata();
