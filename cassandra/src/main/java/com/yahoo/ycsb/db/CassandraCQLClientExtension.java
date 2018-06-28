@@ -269,7 +269,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         }
       }
 
-      ResultSet rs = session.execute(stmt.bind(filtervalue.trim()));
+      ResultSet rs = session.execute(stmt.bind(filtervalue));
 
       List<Row> rows = StreamSupport.stream(rs.spliterator(), false)
           .skip(offset)
