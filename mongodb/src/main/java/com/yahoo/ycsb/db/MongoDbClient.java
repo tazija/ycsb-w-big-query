@@ -444,9 +444,10 @@ public class MongoDbClient extends DB {
       cursor = findIterable.iterator();
 
       if (!cursor.hasNext()) {
-        System.err.println("Nothing found in query1 for value " + filterfield + " " + filtervalue);
+        System.err.println("Not found in query1 " + table + filterfield + " " + filtervalue + " " + offset);
         return Status.NOT_FOUND;
       }
+      System.err.println("Found in query1 " + table + filterfield + " " + filtervalue + " " + offset);
 
       result.ensureCapacity(recordcount);
 
