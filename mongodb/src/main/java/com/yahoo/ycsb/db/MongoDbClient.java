@@ -505,7 +505,7 @@ public class MongoDbClient extends DB {
       cursor = findIterable.iterator();
 
       if (!cursor.hasNext()) {
-//        System.err.println("Nothing found in query1 for value " + filtervalue);
+//        System.err.println("Nothing found in query2 for value " + filtervalue);
         return Status.NOT_FOUND;
       }
 
