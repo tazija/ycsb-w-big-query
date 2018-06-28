@@ -203,14 +203,14 @@ public class CassandraCQLClient extends DB {
             CONNECT_TIMEOUT_MILLIS_PROPERTY);
         if (connectTimoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
-              .setConnectTimeoutMillis(Integer.valueOf(connectTimoutMillis));
+              .setConnectTimeoutMillis(50000);
         }
 
         String readTimoutMillis = getProperties().getProperty(
             READ_TIMEOUT_MILLIS_PROPERTY);
         if (readTimoutMillis != null) {
           cluster.getConfiguration().getSocketOptions()
-              .setReadTimeoutMillis(50000);
+              .setReadTimeoutMillis(100000);
         }
 
         Metadata metadata = cluster.getMetadata();
