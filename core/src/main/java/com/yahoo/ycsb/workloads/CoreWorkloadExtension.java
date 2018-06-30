@@ -281,7 +281,7 @@ public class CoreWorkloadExtension extends CoreWorkload {
     }
 
     joinQueryFilterField1 = p.getProperty(JOIN_QUERY_FILTER_FIELD_1_NAME);
-    joinQueryFilterValues1 = Arrays.asList(p.getProperty(JOIN_QUERY_FILTER_FIELD_VALUES_1, "").split(", "));
+    joinQueryFilterValues1 = Arrays.asList(p.getProperty(JOIN_QUERY_FILTER_FIELD_VALUES_1, "").split(","));
     joinQueryFilterField2 = p.getProperty(JOIN_QUERY_FILTER_FIELD_2_NAME);
     joinQueryFilterValues2 = Arrays.asList(p.getProperty(JOIN_QUERY_FILTER_FIELD_VALUES_2, "").split(","));
     boolean isQuery2 = Double.parseDouble(
