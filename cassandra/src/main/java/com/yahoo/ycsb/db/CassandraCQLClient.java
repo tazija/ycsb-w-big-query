@@ -115,7 +115,9 @@ public class CassandraCQLClient extends DB {
 
   public static final String TRACING_PROPERTY = "cassandra.tracing";
   public static final String TRACING_PROPERTY_DEFAULT = "false";
-  
+
+  private static final String SHARD_COUNT = "shard_count";
+  private static final Integer SHARD_COUNT_DEFAULT = 5;
   /**
    * Count the number of times initialized to teardown on the last
    * {@link #cleanup()}.
@@ -125,6 +127,7 @@ public class CassandraCQLClient extends DB {
   private static boolean debug = false;
 
   private static boolean trace = false;
+  protected Integer shardCount;
   
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -223,6 +226,7 @@ public class CassandraCQLClient extends DB {
               discoveredHost.getRack());
         }
 
+        shardCount = Integer.valueOf(getProperties().getOrDefault(SHARD_COUNT, SHARD_COUNT_DEFAULT).toString());
         session = cluster.connect(keyspace);
 
       } catch (Exception e) {
