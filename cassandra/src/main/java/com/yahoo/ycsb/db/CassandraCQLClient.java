@@ -127,7 +127,7 @@ public class CassandraCQLClient extends DB {
   private static boolean debug = false;
 
   private static boolean trace = false;
-  protected Integer shardCount;
+  protected static Integer shardCountValue;
   
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -226,7 +226,7 @@ public class CassandraCQLClient extends DB {
               discoveredHost.getRack());
         }
 
-        shardCount = Integer.valueOf(getProperties().getOrDefault(SHARD_COUNT, SHARD_COUNT_DEFAULT).toString());
+        shardCountValue = Integer.valueOf(getProperties().getOrDefault(SHARD_COUNT, SHARD_COUNT_DEFAULT).toString());
         session = cluster.connect(keyspace);
 
       } catch (Exception e) {

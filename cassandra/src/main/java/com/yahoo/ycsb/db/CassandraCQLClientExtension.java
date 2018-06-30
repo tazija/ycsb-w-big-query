@@ -257,7 +257,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         stmt = session.prepare(selectBuilder.from(table)
             .where(QueryBuilder.eq(filterfield, QueryBuilder.bindMarker()))
             .and(QueryBuilder.eq("shard_id", QueryBuilder.bindMarker()))
-            .limit(recordcount));
+            .limit(QueryBuilder.bindMarker()));
 
         stmt.setConsistencyLevel(ConsistencyLevel.ONE);
 
@@ -272,10 +272,10 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         }
       }
 
-      List<ResultSetFuture> futures = new ArrayList<>(shardCount);
+      List<ResultSetFuture> futures = new ArrayList<>(shardCountValue);
 
-      for (int i = 0; i < shardCount; i++) {
-        futures.add(session.executeAsync(stmt.bind(filtervalue, i)));
+      for (int i = 0; i < shardCountValue; i++) {
+        futures.add(session.executeAsync(stmt.bind(filtervalue, i, recordcount)));
       }
 
       List<Row> dataResults = new ArrayList<>();
