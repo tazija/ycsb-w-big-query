@@ -256,7 +256,8 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
 
         stmt = session.prepare(selectBuilder.from(table)
             .where(QueryBuilder.eq(filterfield, QueryBuilder.bindMarker()))
-            .and(QueryBuilder.eq("shard_id", QueryBuilder.bindMarker())));
+            .and(QueryBuilder.eq("shard_id", QueryBuilder.bindMarker()))
+            .limit(recordcount));
 
         stmt.setConsistencyLevel(ConsistencyLevel.ONE);
 
