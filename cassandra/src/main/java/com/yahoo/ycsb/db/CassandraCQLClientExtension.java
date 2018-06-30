@@ -22,6 +22,7 @@ import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Cassandra 2.x CQL client.
@@ -255,7 +256,9 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
 
         stmt = session.prepare(selectBuilder.from(table)
             .where(QueryBuilder.eq(filterfield, QueryBuilder.bindMarker()))
+            .and(QueryBuilder.eq("shard_id", QueryBuilder.bindMarker()))
             .limit(recordcount));
+
         stmt.setConsistencyLevel(ConsistencyLevel.ONE);
 
         if (trace) {
@@ -269,10 +272,22 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         }
       }
 
-      ResultSet rs = session.execute(stmt.bind(filtervalue));
+      List<ResultSetFuture> futures = new ArrayList<>(shardCount);
 
-      List<Row> rows = StreamSupport.stream(rs.spliterator(), false)
+      for (int i = 0; i < shardCount; i++) {
+        futures.add(session.executeAsync(stmt.bind(filtervalue, i)));
+      }
+
+      List<Row> dataResults = new ArrayList<>();
+
+      for(ResultSetFuture future: futures) {
+        ResultSet resultByShard = future.getUninterruptibly();
+        dataResults.addAll(resultByShard.all());
+      }
+
+      List<Row> finalRows = dataResults.stream()
           .skip(offset)
+          .limit(recordcount)
           .collect(Collectors.toList());
 
       return Status.OK;
