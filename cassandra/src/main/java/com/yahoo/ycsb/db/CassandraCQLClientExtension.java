@@ -275,7 +275,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
       List<ResultSetFuture> futures = new ArrayList<>(shardCountValue);
 
       for (int i = 0; i < shardCountValue; i++) {
-        futures.add(session.executeAsync(stmt.bind(filtervalue, i, recordcount)));
+        futures.add(session.executeAsync(stmt.bind(filtervalue, i, recordcount+offset)));
       }
 
       List<Row> dataResults = new ArrayList<>();
@@ -283,6 +283,9 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
       for(ResultSetFuture future: futures) {
         ResultSet resultByShard = future.getUninterruptibly();
         dataResults.addAll(resultByShard.all());
+        if (dataResults.size() >= recordcount + offset) {
+          break;
+        }
       }
 
       List<Row> finalRows = dataResults.stream()
