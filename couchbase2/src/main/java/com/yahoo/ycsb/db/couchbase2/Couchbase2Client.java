@@ -169,7 +169,7 @@ public class Couchbase2Client extends DB {
     runtimeMetricsInterval = Integer.parseInt(props.getProperty("couchbase.runtimeMetricsInterval", "0"));
     documentExpiry = Integer.parseInt(props.getProperty("couchbase.documentExpiry", "0"));
     scanAllQuery =  "SELECT RAW meta().id FROM `" + bucketName +
-      "` WHERE meta().id >= '$1' ORDER BY meta().id LIMIT $2";
+      "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
 
     try {
       synchronized (INIT_COORDINATOR) {
