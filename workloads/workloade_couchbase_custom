@@ -48,7 +48,7 @@ scanlengthdistribution=uniform
 # fieldcount=11
 fieldsize=100
 
-couchbase.host=18.208.230.14
+couchbase.host=52.203.171.111
 couchbase.bucket=ycsb-workload-a
 couchbase.password=####provide_via_request_parameters
 
