@@ -193,9 +193,9 @@ public class Couchbase2Client extends DB {
               .callbacksOnIoPool(true)
               .runtimeMetricsCollectorConfig(runtimeConfig)
               .networkLatencyMetricsCollectorConfig(latencyConfig)
-              .socketConnectTimeout(10000) // 10 secs socket connect timeout
-              .connectTimeout(30000) // 30 secs overall bucket open timeout
-              .kvTimeout(10000) // 10 instead of 2.5s for KV ops
+              .socketConnectTimeout(60000) // 10 secs socket connect timeout
+              .connectTimeout(60000) // 30 secs overall bucket open timeout
+              .kvTimeout(60000) // 10 instead of 2.5s for KV ops
               .kvEndpoints(kvEndpoints);
 
           // Tune boosting and epoll based on settings
