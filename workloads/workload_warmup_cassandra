@@ -37,7 +37,6 @@ requestdistribution=uniform
 measurementtype=timeseries+csv
 exportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/log.txt
 statsexportfile=./results/4-nodes/cassandra/workloada_cassandra_custom/N_threads.csv
-maxexecutiontime=600
 
 fieldsize=100
 status.interval=1
