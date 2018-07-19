@@ -49,10 +49,10 @@ couchbase.host=52.203.171.111
 couchbase.password=<to_be_provided>
 
 # bigquery settings
-bigquery.projectid=cpb100-196812
-bigquery.dataSetName=benchmark
-bigquery.tableName=workloadq2_couchbase_v4_5clients
-bigquery.pathToKey=./key-gcp/admin.json
+bigquery.projectid=
+bigquery.dataSetName=
+bigquery.tableName=
+bigquery.pathToKey=
 bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
 
 # query 2 settings

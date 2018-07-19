@@ -43,10 +43,10 @@ status.interval=1
 
 
 bigquery settings
-bigquery.projectid=cpb100-196812
-bigquery.dataSetName=benchmark
-bigquery.tableName=workloadq1_cassandra_v5_5clients
-bigquery.pathToKey=./key-gcp/admin.json
+bigquery.projectid=
+bigquery.dataSetName=
+bigquery.tableName=
+bigquery.pathToKey=
 bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
 
 # query 1 settings

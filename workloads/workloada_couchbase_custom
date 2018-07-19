@@ -40,7 +40,7 @@ requestdistribution=zipfian
 # fieldcount=8
 fieldsize=100
 
-couchbase.host=34.230.50.158
+couchbase.host=
 couchbase.bucket=ycsb-workload-a
 couchbase.password=####provide_via_request_parameters
 
@@ -56,8 +56,8 @@ maxexecutiontime=600
 status.interval=1
 
 
-bigquery.projectid=cpb100-196812
-bigquery.dataSetName=benchmark
-bigquery.tableName=workloada_couchbase_v3_10clients
-bigquery.pathToKey=./key-gcp/admin.json
+bigquery.projectid=
+bigquery.dataSetName=
+bigquery.tableName=
+bigquery.pathToKey=
 bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
