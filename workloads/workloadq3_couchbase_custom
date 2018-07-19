@@ -45,7 +45,7 @@ status.interval=1
 
 # couchbase settings
 couchbase.bucket=ycsb-workloadq
-couchbase.host=52.203.171.111
+couchbase.host=
 couchbase.password=<to_be_provided>
 
 # bigquery settings
