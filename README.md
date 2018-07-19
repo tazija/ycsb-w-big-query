@@ -75,3 +75,31 @@ To build the full distribution, with all database bindings:
 To build a single database binding:
 
     mvn -pl com.yahoo.ycsb:mongodb-binding -am clean package
+
+BigQuery(GCP)   
+----------------- 
+
+The follow configuration should be added for sending measurements to BigQuery:
+
+Project id from your GCP account.
+ 
+    bigquery.projectid=
+
+Dataset from your BigQuery UI.
+
+    bigquery.dataSetName=
+Table name from your Dataset.
+
+    bigquery.tableName=
+Path to your key of GCP account.
+
+    bigquery.pathToKey=
+
+`bigquery.model` is a model of table for collecting measurements in your dataset of BigQuery.
+
+    bigquery.model=time:INTEGER;operations:INTEGER;throughput:FLOAT;type:STRING;latency:FLOAT;threads:INTEGER;
+
+Also, new special measurement type was added for applying BigQuery. The measurements has follow model:
+`time;operations;throughput;type;latency;threads`. The follow parameter should be added for applying new measurement type: 
+
+    measurementtype=timeseries+csv  
