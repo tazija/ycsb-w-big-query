@@ -417,10 +417,6 @@ public class MongoDbClient extends DB {
     }
   }
 
-//  Couchbase Query: ​SELECT RAW meta().id FROM `<bucket_name>` WHERE
-//  address.geo_region = “<value>” OFFSET <num> LIMIT <num>
-
-//  Couchbase Index: ​create index ix2 on `<bucket_name>` (address.geo_region)
   @Override
   public Status query1(String table, String filterfield, String filtervalue, int offset, int recordcount,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
@@ -471,11 +467,6 @@ public class MongoDbClient extends DB {
     }
   }
 
-//  Couchbase Query: ​SELECT o2.month, c2.address.zip, SUM(o2.sale_price) FROM `bucket-1` c2
-//  INNER JOIN orders o2 ON KEYS c2.order_list WHERE c2.address.zip = “value” AND o2.month =
-//  “value” GROUP BY o2.month, c2.address.zip ORDER BY SUM(o2.sale_price)
-
-//  Couchbase Index: ​create index ix7 on `bucket-1`(address.zip, month, order_list, sale_price)
   @Override
   public Status query2(String table, String filterfield1, String filtervalue1, String filterfield2,
                        String filtervalue2, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
