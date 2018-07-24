@@ -47,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Cassandra 2.x CQL client.
@@ -256,9 +257,7 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
 
         stmt = session.prepare(selectBuilder.from(table)
             .where(QueryBuilder.eq(filterfield, QueryBuilder.bindMarker()))
-            .and(QueryBuilder.eq("shard_id", QueryBuilder.bindMarker()))
-            .limit(QueryBuilder.bindMarker()));
-
+            .limit(recordcount));
         stmt.setConsistencyLevel(ConsistencyLevel.ONE);
 
         if (trace) {
@@ -272,25 +271,10 @@ public class CassandraCQLClientExtension extends CassandraCQLClient {
         }
       }
 
-      List<ResultSetFuture> futures = new ArrayList<>(shardCountValue);
+      ResultSet rs = session.execute(stmt.bind(filtervalue));
 
-      for (int i = 0; i < shardCountValue; i++) {
-        futures.add(session.executeAsync(stmt.bind(filtervalue, i, recordcount+offset)));
-      }
-
-      List<Row> dataResults = new ArrayList<>();
-
-      for(ResultSetFuture future: futures) {
-        ResultSet resultByShard = future.getUninterruptibly();
-        dataResults.addAll(resultByShard.all());
-        if (dataResults.size() >= recordcount + offset) {
-          break;
-        }
-      }
-
-      List<Row> finalRows = dataResults.stream()
+      List<Row> rows = StreamSupport.stream(rs.spliterator(), false)
           .skip(offset)
-          .limit(recordcount)
           .collect(Collectors.toList());
 
       return Status.OK;
