@@ -38,17 +38,18 @@ import com.couchbase.client.java.codec.TypeRef;
 import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.kv.PersistTo;
-import com.couchbase.client.java.kv.ReplaceOptions;
 import com.couchbase.client.java.kv.ReplicateTo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.model.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,8 +71,8 @@ import java.util.Vector;
  * <li><b>couchbase.replicateTo=0</b> Replication durability requirement</li>
  * <li><b>couchbase.upsert=false</b> Use upsert instead of insert or replace.</li>
  * <li><b>couchbase.kv=true</b> If set to false, mutation operations will also be performed through N1QL.</li>
- * <li><b>couchbase.documentExpiry=0</b> Document Expiry is the amount of time until a document expires in
- *      Couchbase.</li>
+ * <li><b>couchbase.documentExpiry=0</b> Document Expiry is the amount of time until a document expires in Couchbase
+ * .</li>
  * </ul>
  */
 public class Couchbase3Client extends DB {
@@ -128,7 +129,7 @@ public class Couchbase3Client extends DB {
           // initialize the connection
           cluster = Cluster.connect(host, createClusterOptions());
           bucket = cluster.bucket(bucketName);
-          bucket.waitUntilReady(Duration.parse("PT10S"));
+          bucket.waitUntilReady(Duration.parse("PT30S"));
           kvTimeout = ENVIRONMENT.timeoutConfig().kvTimeout();
 
           collection = bucket.defaultCollection();
@@ -202,11 +203,12 @@ public class Couchbase3Client extends DB {
 
   private Status readKv(String docId, Set<String> fields,
                         Map<String, ByteIterator> result) {
-    GetOptions options = getOptions();
+    GetOptions options = getOptions()
+        .timeout(kvTimeout);
     if (fields.size() <= 16) {
       options.project(fields);
     }
-    result.putAll(collection.get(docId).contentAs(RESULT_TYPE));
+    result.putAll(collection.get(docId, options).contentAs(RESULT_TYPE));
     return Status.OK;
   }
 
@@ -240,10 +242,10 @@ public class Couchbase3Client extends DB {
 
   private Status updateKv(String docId,
                           Map<String, ByteIterator> values) {
-    ReplaceOptions options = replaceOptions()
+    collection.replace(docId, values, replaceOptions()
+        .timeout(kvTimeout)
         .expiry(documentExpiry)
-        .durability(persistTo, replicateTo);
-    collection.replace(docId, values, options);
+        .durability(persistTo, replicateTo));
     return Status.OK;
   }
 
@@ -286,19 +288,25 @@ public class Couchbase3Client extends DB {
     for (int i = 0; i < TRIES; i++) {
       try {
         collection.insert(docId, values, insertOptions()
+            .timeout(kvTimeout)
             .expiry(documentExpiry)
             .durability(persistTo, replicateTo)
         );
         return Status.OK;
       } catch (TemporaryFailureException exception) {
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          throw new RuntimeException("Interrupted while sleeping on TMPFAIL backoff", exception);
-        }
+        backoff(exception);
       }
     }
     throw new RuntimeException(format("Receiving TMPFAIL from the server after %d times", TRIES));
+  }
+
+  private void backoff(Exception exception) {
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          format("Interrupted while backoff upon %s", exception.getMessage()));
+    }
   }
 
   private Status insertN1ql(String docId,
@@ -316,8 +324,8 @@ public class Couchbase3Client extends DB {
       } else {
         return upsertN1ql(docId, values);
       }
-    } catch (Exception ex) {
-      ex.printStackTrace();
+    } catch (Exception exception) {
+      LOGGER.error("Upsert failed", exception);
       return Status.ERROR;
     }
   }
@@ -325,6 +333,7 @@ public class Couchbase3Client extends DB {
   private Status upsertKv(String docId,
                           Map<String, ByteIterator> values) {
     collection.upsert(docId, values, upsertOptions()
+        .timeout(kvTimeout)
         .expiry(documentExpiry)
         .durability(persistTo, replicateTo)
     );
@@ -353,6 +362,7 @@ public class Couchbase3Client extends DB {
 
   private Status deleteKv(String docId) {
     collection.remove(docId, removeOptions()
+        .timeout(kvTimeout)
         .durability(persistTo, replicateTo));
     return Status.OK;
   }
@@ -389,5 +399,17 @@ public class Couchbase3Client extends DB {
                        String filterField2, String filterValue2,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     throw new UnsupportedOperationException("query3 is not implemented");
+  }
+
+  public static void main(String[] args) throws Exception {
+    Properties properties = new Properties();
+    properties.load(new FileInputStream(args[0]));
+    Couchbase3Client client = new Couchbase3Client();
+    client.setProperties(properties);
+    client.init();
+    Map<String, ByteIterator> values = new HashMap<>();
+    values.put("field1", new StringByteIterator("value1"));
+    Status status = client.insert("table1", "key1", values);
+    LOGGER.info("Status {}", status);
   }
 }

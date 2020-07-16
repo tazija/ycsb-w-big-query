@@ -14,6 +14,7 @@ import java.io.IOException;
 
 public class Couchbase3JacksonModule extends SimpleModule {
   public Couchbase3JacksonModule() {
+    // register custom serializer and deserializer for ycsb byte iterator
     addDeserializer(ByteIterator.class, new JsonDeserializer<ByteIterator>() {
       @Override
       public ByteIterator deserialize(JsonParser parser,
