@@ -49,7 +49,6 @@ import com.yahoo.ycsb.model.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -403,7 +402,7 @@ public class Couchbase3Client extends DB {
 
   public static void main(String[] args) throws Exception {
     Properties properties = new Properties();
-    properties.load(new FileInputStream(args[0]));
+    properties.load(Couchbase3Client.class.getResourceAsStream("/couchbase.properties"));
     Couchbase3Client client = new Couchbase3Client();
     client.setProperties(properties);
     client.init();
