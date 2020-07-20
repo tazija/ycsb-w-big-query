@@ -44,7 +44,6 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.model.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +83,7 @@ public class Couchbase3Client extends DB {
 
   private static Object LOCK = new Object();
   private static final int TRIES = 60;
-  private static volatile ClusterEnvironment ENVIRONMENT = null;
+  private ClusterEnvironment ENVIRONMENT = null;
 
   private Cluster cluster;
   private Bucket bucket;
@@ -117,29 +116,27 @@ public class Couchbase3Client extends DB {
     try {
       synchronized (LOCK) {
         if (ENVIRONMENT == null) {
-
           ENVIRONMENT = ClusterEnvironment.builder()
               .securityConfig(createSecurityConfig())
               .ioConfig(createIoConfig())
               .timeoutConfig(createTimeoutConfig())
               .transcoder(createTranscoder())
               .build();
-
-          // initialize the connection
-          cluster = Cluster.connect(host, createClusterOptions());
-          bucket = cluster.bucket(bucketName);
-          bucket.waitUntilReady(Duration.parse("PT30S"));
-          kvTimeout = ENVIRONMENT.timeoutConfig().kvTimeout();
-
-          collection = bucket.defaultCollection();
-          cluster.queryIndexes().createPrimaryIndex(bucketName,
-              createPrimaryQueryIndexOptions().ignoreIfExists(true));
-
-          logParams();
         }
+        // initialize the connection
+        cluster = Cluster.connect(host, createClusterOptions());
+        bucket = cluster.bucket(bucketName);
+        bucket.waitUntilReady(Duration.parse("PT300S"));
+        kvTimeout = ENVIRONMENT.timeoutConfig().kvTimeout();
+
+        collection = bucket.defaultCollection();
+        cluster.queryIndexes().createPrimaryIndex(bucketName,
+            createPrimaryQueryIndexOptions().ignoreIfExists(true));
+
+        logParams();
       }
     } catch (Exception exception) {
-      throw new DBException("Could not connect to Couchbase", exception);
+      throw new DBException("Can't connect to Couchbase", exception);
     }
   }
 
@@ -191,11 +188,11 @@ public class Couchbase3Client extends DB {
   @Override
   public Status read(String table, String key, Set<String> fields,
                      Map<String, ByteIterator> result) {
+    String docId = getId(table, key);
     try {
-      String docId = getId(table, key);
       return kv ? readKv(docId, fields, result) : readN1ql(docId, fields, result);
     } catch (Exception exception) {
-      LOGGER.error("Read failed", exception);
+      LOGGER.error("Read failed {}", docId);
       return Status.ERROR;
     }
   }
@@ -204,7 +201,7 @@ public class Couchbase3Client extends DB {
                         Map<String, ByteIterator> result) {
     GetOptions options = getOptions()
         .timeout(kvTimeout);
-    if (fields.size() <= 16) {
+    if (fields != null && fields.size() <= 16) {
       options.project(fields);
     }
     result.putAll(collection.get(docId, options).contentAs(RESULT_TYPE));
@@ -222,11 +219,11 @@ public class Couchbase3Client extends DB {
     if (upsert) {
       return upsert(table, key, values);
     }
+    String docId = getId(table, key);
     try {
-      String docId = getId(table, key);
       return kv ? updateKv(docId, values) : updateN1ql(docId, values);
     } catch (Exception exception) {
-      LOGGER.error("Update failed", exception);
+      LOGGER.error("Update failed {}", docId);
       return Status.ERROR;
     }
   }
@@ -259,15 +256,15 @@ public class Couchbase3Client extends DB {
     if (upsert) {
       return upsert(table, key, values);
     }
+    String docId = getId(table, key);
     try {
-      String docId = getId(table, key);
       if (kv) {
         return insertKv(docId, values);
       } else {
         return insertN1ql(docId, values);
       }
     } catch (Exception exception) {
-      LOGGER.error("Update failed", exception);
+      LOGGER.error("Insert failed {}", docId);
       return Status.ERROR;
     }
   }
@@ -316,15 +313,15 @@ public class Couchbase3Client extends DB {
   private Status upsert(String table,
                         String key,
                         Map<String, ByteIterator> values) {
+    String docId = getId(table, key);
     try {
-      String docId = getId(table, key);
       if (kv) {
         return upsertKv(docId, values);
       } else {
         return upsertN1ql(docId, values);
       }
     } catch (Exception exception) {
-      LOGGER.error("Upsert failed", exception);
+      LOGGER.error("Upsert failed {}", docId);
       return Status.ERROR;
     }
   }
@@ -346,15 +343,15 @@ public class Couchbase3Client extends DB {
 
   @Override
   public Status delete(String table, String key) {
+    String docId = getId(table, key);
     try {
-      String docId = getId(table, key);
       if (kv) {
         return deleteKv(docId);
       } else {
         return deleteN1ql(docId);
       }
     } catch (Exception exception) {
-      LOGGER.error("Delete failed", exception);
+      LOGGER.error("Delete failed {}", docId);
       return Status.ERROR;
     }
   }
@@ -398,17 +395,5 @@ public class Couchbase3Client extends DB {
                        String filterField2, String filterValue2,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     throw new UnsupportedOperationException("query3 is not implemented");
-  }
-
-  public static void main(String[] args) throws Exception {
-    Properties properties = new Properties();
-    properties.load(Couchbase3Client.class.getResourceAsStream("/couchbase.properties"));
-    Couchbase3Client client = new Couchbase3Client();
-    client.setProperties(properties);
-    client.init();
-    Map<String, ByteIterator> values = new HashMap<>();
-    values.put("field1", new StringByteIterator("value1"));
-    Status status = client.insert("table1", "key1", values);
-    LOGGER.info("Status {}", status);
   }
 }

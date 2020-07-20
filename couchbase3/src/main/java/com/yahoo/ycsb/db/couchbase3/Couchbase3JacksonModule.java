@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -19,7 +20,8 @@ public class Couchbase3JacksonModule extends SimpleModule {
       @Override
       public ByteIterator deserialize(JsonParser parser,
                                       DeserializationContext context) throws IOException {
-        return new StringByteIterator(new String(parser.getBinaryValue()));
+        JsonNode node = parser.readValueAsTree();
+        return new StringByteIterator(node.asText());
       }
     });
     addSerializer(ByteIterator.class, new JsonSerializer<ByteIterator>() {
