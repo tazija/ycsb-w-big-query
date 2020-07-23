@@ -78,15 +78,14 @@ public class BigQueryApi {
       rows.forEach(builder::addRow);
       InsertAllRequest insertAllRequest = builder.build();
 
-
-      CompletableFuture
+      final CompletableFuture<Void> future = CompletableFuture
           .supplyAsync(() -> bigQuery.insertAll(insertAllRequest))
           .thenAcceptAsync(insertAllResponse -> {
-              if (insertAllResponse.hasErrors()) {
-                bigQuery.insertAll(insertAllRequest);
-              }
-            });
+            if (insertAllResponse.hasErrors()) {
+              bigQuery.insertAll(insertAllRequest);
+            }
+          });
+      future.join();
     }
   }
-
 }
