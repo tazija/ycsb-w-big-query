@@ -387,7 +387,7 @@ public class Couchbase3Client extends DB {
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     String docId = getId(table, startKey);
     try {
-      // if no fields to fetch specified scan indexed field only
+      // if no fields to fetch specified select indexed field only
       String scanFields = fields == null || fields.isEmpty() ? "meta().id" : fields(fields);
       String scanQuery = "SELECT " + scanFields + " FROM `" + bucketName
           + "` WHERE meta().id >= '$1' LIMIT $2";
