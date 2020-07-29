@@ -22,6 +22,8 @@ import static com.yahoo.ycsb.db.couchbase3.Couchbase3Utils.parseReplicateTo;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import com.couchbase.client.core.env.IoConfig;
@@ -36,21 +38,29 @@ import com.couchbase.client.java.codec.JacksonJsonSerializer;
 import com.couchbase.client.java.codec.JsonTranscoder;
 import com.couchbase.client.java.codec.TypeRef;
 import com.couchbase.client.java.env.ClusterEnvironment;
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonValueModule;
 import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.kv.PersistTo;
 import com.couchbase.client.java.kv.ReplicateTo;
+import com.couchbase.client.java.query.QueryOptions;
+import com.couchbase.client.java.query.QueryResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.model.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
@@ -80,6 +90,11 @@ public class Couchbase3Client extends DB {
   private static final TypeRef<Map<String, ByteIterator>> RESULT_TYPE =
       new TypeRef<Map<String, ByteIterator>>() {
       };
+  private static final JacksonJsonSerializer SERIALIZER = JacksonJsonSerializer.create(
+      new ObjectMapper()
+          .registerModule(new JsonValueModule())
+          .registerModule(new Couchbase3JacksonModule())
+  );
 
   private static Object LOCK = new Object();
   private static final int TRIES = 60;
@@ -96,8 +111,9 @@ public class Couchbase3Client extends DB {
   private Duration kvTimeout;
   private boolean kv;
   private String host;
-  private String scanAllQuery;
   private Duration documentExpiry; // roughly 60 seconds with the 1 second sleep, not 100% accurate.
+  private boolean adhoc;
+  private int maxParallelism;
 
   @Override
   public void init() throws DBException {
@@ -111,7 +127,8 @@ public class Couchbase3Client extends DB {
     replicateTo = parseReplicateTo(properties.getProperty(REPLICATE_TO, "0"));
     kv = properties.getProperty(KV, "true").equals("true");
     documentExpiry = Duration.of(parseInt(properties.getProperty(DOCUMENT_EXPIRY, "0")), MILLIS);
-    scanAllQuery = "SELECT RAW meta().id FROM `" + bucketName + "` WHERE meta().id >= $1 ORDER BY meta().id LIMIT $2";
+    adhoc = properties.getProperty("couchbase.adhoc", "false").equals("true");
+    maxParallelism = Integer.parseInt(properties.getProperty("couchbase.maxParallelism", "1"));
 
     try {
       synchronized (LOCK) {
@@ -130,9 +147,10 @@ public class Couchbase3Client extends DB {
         kvTimeout = ENVIRONMENT.timeoutConfig().kvTimeout();
 
         collection = bucket.defaultCollection();
-        cluster.queryIndexes().createPrimaryIndex(bucketName,
-            createPrimaryQueryIndexOptions().ignoreIfExists(true));
-
+        if (!kv) {
+          cluster.queryIndexes().createPrimaryIndex(bucketName,
+              createPrimaryQueryIndexOptions().ignoreIfExists(true));
+        }
         logParams();
       }
     } catch (Exception exception) {
@@ -166,10 +184,7 @@ public class Couchbase3Client extends DB {
   }
 
   private JsonTranscoder createTranscoder() {
-    return JsonTranscoder.create(
-        JacksonJsonSerializer.create(
-            new ObjectMapper()
-                .registerModule(new Couchbase3JacksonModule())));
+    return JsonTranscoder.create(SERIALIZER);
   }
 
   private void logParams() {
@@ -192,7 +207,7 @@ public class Couchbase3Client extends DB {
     try {
       return kv ? readKv(docId, fields, result) : readN1ql(docId, fields, result);
     } catch (Exception exception) {
-      LOGGER.error("Read failed {}", docId);
+      LOGGER.error("Read failed docId {}", docId);
       return Status.ERROR;
     }
   }
@@ -223,7 +238,7 @@ public class Couchbase3Client extends DB {
     try {
       return kv ? updateKv(docId, values) : updateN1ql(docId, values);
     } catch (Exception exception) {
-      LOGGER.error("Update failed {}", docId);
+      LOGGER.error("Update failed docId {}", docId);
       return Status.ERROR;
     }
   }
@@ -264,7 +279,7 @@ public class Couchbase3Client extends DB {
         return insertN1ql(docId, values);
       }
     } catch (Exception exception) {
-      LOGGER.error("Insert failed {}", docId);
+      LOGGER.error("Insert failed docId {}", docId);
       return Status.ERROR;
     }
   }
@@ -321,7 +336,7 @@ public class Couchbase3Client extends DB {
         return upsertN1ql(docId, values);
       }
     } catch (Exception exception) {
-      LOGGER.error("Upsert failed {}", docId);
+      LOGGER.error("Upsert failed docId {}", docId);
       return Status.ERROR;
     }
   }
@@ -351,7 +366,7 @@ public class Couchbase3Client extends DB {
         return deleteN1ql(docId);
       }
     } catch (Exception exception) {
-      LOGGER.error("Delete failed {}", docId);
+      LOGGER.error("Delete failed docId {}", docId);
       return Status.ERROR;
     }
   }
@@ -368,9 +383,24 @@ public class Couchbase3Client extends DB {
   }
 
   @Override
-  public Status scan(String table, String startKey, int recordCount,
+  public Status scan(String table, String startKey, int docCount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    throw new UnsupportedOperationException("N1QL is not supported");
+    String docId = getId(table, startKey);
+    try {
+      String scanQuery = "SELECT " + fields(fields) + " FROM `" + bucketName
+          + "` WHERE meta().id >= '$1' LIMIT $2";
+      QueryResult scanResult = cluster.query(scanQuery, QueryOptions.queryOptions()
+          .serializer(SERIALIZER)
+          .parameters(JsonArray.from(docId, docCount))
+          .adhoc(adhoc)
+          .maxParallelism(maxParallelism)
+      );
+      result.addAll(getResult(scanResult));
+      return Status.OK;
+    } catch (Exception exception) {
+      LOGGER.error("Scan failed start docId {} docCount {}", docId, docCount, exception);
+      return Status.ERROR;
+    }
   }
 
   @Override
@@ -395,5 +425,32 @@ public class Couchbase3Client extends DB {
                        String filterField2, String filterValue2,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     throw new UnsupportedOperationException("query3 is not implemented");
+  }
+
+  private List<HashMap<String, ByteIterator>> getResult(QueryResult scanResult) {
+    return scanResult.rowsAsObject().stream()
+        .map(object -> object.getObject(bucketName))
+        .filter(Objects::nonNull)
+        .map(object -> object.toMap().entrySet().stream()
+            .collect(toMap(
+                Map.Entry::getKey,
+                entry -> (ByteIterator) new StringByteIterator((String) entry.getValue()),
+                (value1, value2) -> value1,
+                HashMap::new))).collect(toList());
+  }
+
+  private static String fields(Set<String> fields) {
+    if (fields == null || fields.isEmpty()) {
+      return "*";
+    }
+    StringBuilder builder = new StringBuilder();
+    for (Iterator<String> iterator = fields.iterator(); iterator.hasNext(); ) {
+      String field = iterator.next();
+      builder.append("`").append(field).append("`");
+      if (iterator.hasNext()) {
+        builder.append(",");
+      }
+    }
+    return builder.toString();
   }
 }
