@@ -218,8 +218,6 @@ public class Couchbase3Client extends DB {
                        String filterField2, String filterValue2,
                        Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     try {
-      filterValue1 = "33900";
-      filterValue2 = "March";
       @SuppressWarnings("StringBufferReplaceableByString")
       StringBuilder query = new StringBuilder("SELECT ");
       query.append(fields(ImmutableSet.of(
