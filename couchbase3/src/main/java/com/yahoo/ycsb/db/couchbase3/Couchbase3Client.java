@@ -178,7 +178,7 @@ public class Couchbase3Client extends DB {
 
   /**
    * CREATE PRIMARY INDEX ON `bucket` USING GSI;
-   * CREATE INDEX address_country ON `bucket`(`address`.`country`) USING GSI;
+   * CREATE INDEX `query1` ON `bucket`(`address`.`country`) USING GSI;
    * SELECT * FROM system:indexes;
    */
   @Override
@@ -208,8 +208,7 @@ public class Couchbase3Client extends DB {
   }
 
   /**
-   * CREATE INDEX `address_zip_month_order_list_sale_price` ON `bucket`(address.zip, month, order_list, sale_price)
-   * USING GSI;
+   * CREATE INDEX `query2` ON `bucket`(address.zip, month, order_list, sale_price) USING GSI;
    * SELECT * FROM system:indexes;
    */
   @Override
