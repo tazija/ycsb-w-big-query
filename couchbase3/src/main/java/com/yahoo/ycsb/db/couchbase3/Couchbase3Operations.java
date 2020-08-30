@@ -12,6 +12,7 @@ import static com.yahoo.ycsb.db.couchbase3.Couchbase3Utils.parseReplicateTo;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.Optional.ofNullable;
 
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import com.couchbase.client.core.env.IoConfig;
@@ -30,6 +31,7 @@ import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.kv.PersistTo;
 import com.couchbase.client.java.kv.ReplicateTo;
+import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -58,7 +60,7 @@ public class Couchbase3Operations implements Couchbase3Config {
   // roughly 60 seconds with the 1 second sleep, not 100% accurate
   private final Duration documentExpiry;
   private final boolean adhoc;
-  private final int maxParallelism;
+  private final Integer maxParallelism;
 
   public Couchbase3Operations(Properties properties) {
     host = properties.getProperty(HOST, DEFAULT_HOST);
@@ -70,7 +72,8 @@ public class Couchbase3Operations implements Couchbase3Config {
     kv = parseBoolean(properties.getProperty(KV, DEFAULT_KV));
     documentExpiry = Duration.of(parseInt(properties.getProperty(DOCUMENT_EXPIRY, DEFAULT_DOCUMENT_EXPIRY)), MILLIS);
     adhoc = parseBoolean(properties.getProperty(ADHOC, DEFAULT_ADHOC));
-    maxParallelism = parseInt(properties.getProperty(MAX_PARALLELISM, DEFAULT_MAX_PARALLELISM));
+    maxParallelism = ofNullable(properties.getProperty(MAX_PARALLELISM, DEFAULT_MAX_PARALLELISM))
+        .map(Integer::parseInt).orElse(null);
 
     ClusterEnvironment environment = ClusterEnvironment.builder()
         .securityConfig(createSecurityConfig())
@@ -127,12 +130,14 @@ public class Couchbase3Operations implements Couchbase3Config {
 
   public QueryResult query(String query,
                            JsonArray parameters) {
-    return cluster.query(query, queryOptions()
+    QueryOptions options = queryOptions()
         .serializer(SERIALIZER)
         .parameters(parameters)
-        .adhoc(adhoc)
-        .maxParallelism(maxParallelism)
-    );
+        .adhoc(adhoc);
+    if (maxParallelism != null) {
+      options.maxParallelism(maxParallelism);
+    }
+    return cluster.query(query, options);
   }
 
   public void insert(String id, Object content) {
