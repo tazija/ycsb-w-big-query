@@ -943,7 +943,7 @@ public final class Client {
 
     initWorkload(props, warningthread, workload, tracer);
 
-    System.err.println("Starting test.");
+    System.err.println("Starting test");
     final CountDownLatch completeLatch = new CountDownLatch(threadcount);
 
     final List<ClientThread> clients = initDb(dbname, props, threadcount, targetperthreadperms,
@@ -961,9 +961,11 @@ public final class Client {
       String statsExportFile = props.getProperty(EXPORT_STATS_TO_FILE, DEFAULT_EXPORT_STATS_TO_FILE);
 
       if (bigQueryConfiguration.isPropertyCorrect()) {
+        System.err.println("Exporting stats to big query");
         statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
             trackJVMStats, statsExportFile, threadcount, new BigQueryApi(bigQueryConfiguration));
       } else {
+        System.err.println("Exporting stats to file");
         statusthread = new StatusThread(completeLatch, clients, label, standardstatus, statusIntervalSeconds,
             trackJVMStats, statsExportFile, threadcount);
       }
