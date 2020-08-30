@@ -37,7 +37,7 @@ public interface Couchbase3Config {
   String DEFAULT_KV = "true";
   String DEFAULT_DOCUMENT_EXPIRY = "0";
   String DEFAULT_ADHOC = "false";
-  String DEFAULT_MAX_PARALLELISM = "1";
+  String DEFAULT_MAX_PARALLELISM = null;
   String DEFAULT_WAIT_UNTIL_READY = "PT300S";
   String DEFAULT_TIMEOUT = "PT60S";
 }
