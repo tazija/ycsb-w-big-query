@@ -16,8 +16,6 @@
  */
 package com.yahoo.ycsb.gcp.bigquery;
 
-import static java.lang.String.format;
-
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -71,9 +69,9 @@ public class BigQueryApi {
 
     if (this.bigQuery.getTable(tableId) == null) {
       this.bigQuery.create(tableInfo);
-      System.out.printf("Creating new table %s", tableId);
+      System.out.printf("Creating new table %s%n", tableId);
     } else {
-      System.out.printf("Using existing table %s", tableId);
+      System.out.printf("Using existing table %s%n", tableId);
     }
   }
 
