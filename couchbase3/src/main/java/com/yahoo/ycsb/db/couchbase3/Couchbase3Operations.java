@@ -11,7 +11,6 @@ import static com.yahoo.ycsb.db.couchbase3.Couchbase3Utils.parsePersistTo;
 import static com.yahoo.ycsb.db.couchbase3.Couchbase3Utils.parseReplicateTo;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
-import static java.lang.Runtime.getRuntime;
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Optional.ofNullable;
 
@@ -116,7 +115,7 @@ public class Couchbase3Operations implements Couchbase3Config {
     return IoEnvironment.builder()
         .eventLoopThreadCount(eventLoopThreadCount)
         .queryEventLoopGroup(new NioEventLoopGroup(
-            getRuntime().availableProcessors(),
+            eventLoopThreadCount,
             threadFactory,
             SelectorProvider.provider(),
             new BackoffSelectStrategyFactory()));
