@@ -69,7 +69,7 @@ public class Couchbase3Client extends DB {
                      Map<String, ByteIterator> result) {
     String docId = getId(table, key);
     try {
-      if (fields.size() > 16) {
+      if (fields != null && fields.size() > 16) {
         fields = null;
       }
       result.putAll(operations.get(docId, fields).contentAs(RESULT_TYPE));
