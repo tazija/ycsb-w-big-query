@@ -286,48 +286,4 @@ public class Couchbase3Client extends DB {
     }
     return builder.toString();
   }
-
-  /**
-   * Factory for the {@link BackoffSelectStrategy} to be used with boosting.
-   */
-  class BackoffSelectStrategyFactory implements SelectStrategyFactory {
-    @Override
-    public SelectStrategy newSelectStrategy() {
-      return new BackoffSelectStrategy();
-    }
-  }
-
-  /**
-   * Custom IO select strategy which trades CPU for throughput, used with the boost setting.
-   */
-  class BackoffSelectStrategy implements SelectStrategy {
-
-    private int counter = 0;
-
-    @Override
-    public int calculateStrategy(IntSupplier supplier,
-                                 boolean hasTasks) throws Exception {
-      int selectNowResult = supplier.get();
-      if (hasTasks || selectNowResult != 0) {
-        counter = 0;
-        return selectNowResult;
-      }
-      counter++;
-
-      if (counter > 2000) {
-        LockSupport.parkNanos(1);
-      } else if (counter > 3000) {
-        Thread.yield();
-      } else if (counter > 4000) {
-        LockSupport.parkNanos(1000);
-      } else if (counter > 5000) {
-        // defer to blocking select
-        counter = 0;
-        return SelectStrategy.SELECT;
-      }
-
-      return SelectStrategy.CONTINUE;
-    }
-  }
-
 }
