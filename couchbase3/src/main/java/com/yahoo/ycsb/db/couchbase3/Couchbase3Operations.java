@@ -16,6 +16,7 @@ import static java.util.Optional.ofNullable;
 
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import com.couchbase.client.core.env.IoConfig;
+import com.couchbase.client.core.env.IoEnvironment;
 import com.couchbase.client.core.env.SecurityConfig;
 import com.couchbase.client.core.env.TimeoutConfig;
 import com.couchbase.client.java.Bucket;
@@ -61,6 +62,7 @@ public class Couchbase3Operations implements Couchbase3Config {
   private final Duration documentExpiry;
   private final boolean adhoc;
   private final Integer maxParallelism;
+  private final int eventLoopThreadCount;
 
   public Couchbase3Operations(Properties properties) {
     host = properties.getProperty(HOST, DEFAULT_HOST);
@@ -74,8 +76,11 @@ public class Couchbase3Operations implements Couchbase3Config {
     adhoc = parseBoolean(properties.getProperty(ADHOC, DEFAULT_ADHOC));
     maxParallelism = ofNullable(properties.getProperty(MAX_PARALLELISM, DEFAULT_MAX_PARALLELISM))
         .map(Integer::parseInt).orElse(null);
+    eventLoopThreadCount = parseInt(properties.getProperty(EVENT_LOOP_THREAD_COUNT, Integer.toString(
+        Couchbase3Config.getEventLoopThreadCount())));
 
     ClusterEnvironment environment = ClusterEnvironment.builder()
+        .ioEnvironment(createIoEnvironment())
         .securityConfig(createSecurityConfig())
         .ioConfig(createIoConfig())
         .timeoutConfig(createTimeoutConfig())
@@ -95,6 +100,11 @@ public class Couchbase3Operations implements Couchbase3Config {
 
     kvTimeout = environment.timeoutConfig().kvTimeout();
     collection = bucket.defaultCollection();
+  }
+
+  private IoEnvironment.Builder createIoEnvironment() {
+    return IoEnvironment.builder()
+        .eventLoopThreadCount(eventLoopThreadCount);
   }
 
   protected SecurityConfig.Builder createSecurityConfig() {
