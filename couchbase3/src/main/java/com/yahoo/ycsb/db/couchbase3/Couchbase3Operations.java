@@ -11,10 +11,13 @@ import static com.yahoo.ycsb.db.couchbase3.Couchbase3Utils.parsePersistTo;
 import static com.yahoo.ycsb.db.couchbase3.Couchbase3Utils.parseReplicateTo;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
+import static java.lang.Runtime.getRuntime;
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Optional.ofNullable;
 
+import com.couchbase.client.core.deps.io.netty.channel.nio.NioEventLoopGroup;
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import com.couchbase.client.core.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.client.core.env.IoConfig;
 import com.couchbase.client.core.env.IoEnvironment;
 import com.couchbase.client.core.env.SecurityConfig;
@@ -36,9 +39,11 @@ import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.nio.channels.spi.SelectorProvider;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ThreadFactory;
 
 public class Couchbase3Operations implements Couchbase3Config {
 
@@ -103,8 +108,11 @@ public class Couchbase3Operations implements Couchbase3Config {
   }
 
   private IoEnvironment.Builder createIoEnvironment() {
+    ThreadFactory threadFactory = new DefaultThreadFactory("couchbase3", true);
     return IoEnvironment.builder()
-        .eventLoopThreadCount(eventLoopThreadCount);
+        .eventLoopThreadCount(eventLoopThreadCount)
+        .queryEventLoopGroup(new NioEventLoopGroup(
+            getRuntime().availableProcessors(), threadFactory, SelectorProvider.provider()));
   }
 
   protected SecurityConfig.Builder createSecurityConfig() {
