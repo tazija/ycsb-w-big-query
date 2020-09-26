@@ -14,11 +14,8 @@ import static java.lang.Integer.parseInt;
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Optional.ofNullable;
 
-import com.couchbase.client.core.deps.io.netty.channel.SelectStrategy;
-import com.couchbase.client.core.deps.io.netty.channel.SelectStrategyFactory;
 import com.couchbase.client.core.deps.io.netty.channel.nio.NioEventLoopGroup;
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import com.couchbase.client.core.deps.io.netty.util.IntSupplier;
 import com.couchbase.client.core.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.client.core.env.IoConfig;
 import com.couchbase.client.core.env.IoEnvironment;
@@ -46,7 +43,6 @@ import java.time.Duration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.locks.LockSupport;
 
 public class Couchbase3Operations implements Couchbase3Config {
 
@@ -115,10 +111,7 @@ public class Couchbase3Operations implements Couchbase3Config {
     return IoEnvironment.builder()
         .eventLoopThreadCount(eventLoopThreadCount)
         .queryEventLoopGroup(new NioEventLoopGroup(
-            eventLoopThreadCount,
-            threadFactory,
-            SelectorProvider.provider(),
-            new BackoffSelectStrategyFactory()));
+            eventLoopThreadCount, threadFactory, SelectorProvider.provider()));
   }
 
   protected SecurityConfig.Builder createSecurityConfig() {
@@ -231,48 +224,5 @@ public class Couchbase3Operations implements Couchbase3Config {
 
   public boolean isKv() {
     return kv;
-  }
-
-  /**
-   * Factory for the {@link BackoffSelectStrategy} to be used with boosting.
-   */
-  private static class BackoffSelectStrategyFactory implements SelectStrategyFactory {
-    @Override
-    public SelectStrategy newSelectStrategy() {
-      return new BackoffSelectStrategy();
-    }
-  }
-
-  /**
-   * Custom IO select strategy which trades CPU for throughput, used with the boost setting.
-   */
-  private static class BackoffSelectStrategy implements SelectStrategy {
-
-    private int counter = 0;
-
-    @Override
-    public int calculateStrategy(IntSupplier supplier,
-                                 boolean hasTasks) throws Exception {
-      int selectNowResult = supplier.get();
-      if (hasTasks || selectNowResult != 0) {
-        counter = 0;
-        return selectNowResult;
-      }
-      counter++;
-
-      if (counter > 2000) {
-        LockSupport.parkNanos(1);
-      } else if (counter > 3000) {
-        Thread.yield();
-      } else if (counter > 4000) {
-        LockSupport.parkNanos(1000);
-      } else if (counter > 5000) {
-        // defer to blocking select
-        counter = 0;
-        return SelectStrategy.SELECT;
-      }
-
-      return SelectStrategy.CONTINUE;
-    }
   }
 }
