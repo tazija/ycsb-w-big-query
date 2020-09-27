@@ -6,9 +6,6 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
-import com.couchbase.client.core.deps.io.netty.channel.SelectStrategy;
-import com.couchbase.client.core.deps.io.netty.channel.SelectStrategyFactory;
-import com.couchbase.client.core.deps.io.netty.util.IntSupplier;
 import com.couchbase.client.core.error.TemporaryFailureException;
 import com.couchbase.client.java.codec.TypeRef;
 import com.couchbase.client.java.json.JsonArray;
@@ -31,7 +28,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 
 /**
@@ -172,10 +168,10 @@ public class Couchbase3Client extends DB {
       } else {
         query.append(fields(fields, true));
       }
-      query.append(" FROM `").append(operations.getBucketName()).append("`");
+      query.append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE meta().id >= '$1' LIMIT $2");
       JsonArray parameters = JsonArray.from(docId, docCount);
-      query(query.toString(), parameters, result, object -> object.getObject(operations.getBucketName()));
+      query(query.toString(), parameters, result, object -> object.getObject(getBucketName()));
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("scan() failed start docId {} docCount {}", docId, docCount, exception);
@@ -201,8 +197,8 @@ public class Couchbase3Client extends DB {
       } else {
         query.append(fields(fields, true));
       }
-      query.append(" FROM `").append(operations.getBucketName()).append("`");
-      query.append(" WHERE ").append(filterField).append(" = $1");
+      query.append(" FROM `").append(getBucketName()).append("`");
+      query.append(" WHERE ").append(filterField).append(" = '$1'");
       query.append(" OFFSET $2 LIMIT $3");
       JsonArray parameters = JsonArray.from(filterValue, offset, recordCount);
       query(query.toString(), parameters, result, object -> object);
@@ -228,10 +224,10 @@ public class Couchbase3Client extends DB {
       StringBuilder query = new StringBuilder("SELECT ");
       query.append(fields(ImmutableSet.of(
           "c2." + filterField1, "o2." + filterField2, "SUM(o2.sale_price) as sale_price"), false));
-      query.append(" FROM `").append(operations.getBucketName()).append("` c2");
-      query.append(" INNER JOIN `").append(operations.getBucketName()).append("` o2");
-      query.append(" ON KEYS c2.order_list WHERE c2.").append(filterField1).append(" = $1");
-      query.append(" AND o2.").append(filterField2).append(" = $2");
+      query.append(" FROM `").append(getBucketName()).append("` c2");
+      query.append(" INNER JOIN `").append(getBucketName()).append("` o2");
+      query.append(" ON KEYS c2.order_list WHERE c2.").append(filterField1).append(" = '$1'");
+      query.append(" AND o2.").append(filterField2).append(" = '$2'");
       query.append(" GROUP BY ").append(fields(ImmutableSet.of("c2." + filterField1, "o2." + filterField2), false));
       query.append(" ORDER BY SUM(o2.sale_price)");
       query(query.toString(), JsonArray.from(filterValue1, filterValue2), result, object -> object);
@@ -240,6 +236,10 @@ public class Couchbase3Client extends DB {
       LOGGER.error("query2() failed filterValue1 {} filterValue2 {}", filterValue1, filterValue2, exception);
       return Status.ERROR;
     }
+  }
+
+  private String getBucketName() {
+    return operations.getBucketName();
   }
 
   @Override
