@@ -14,11 +14,8 @@ import static java.lang.Integer.parseInt;
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Optional.ofNullable;
 
-import com.couchbase.client.core.deps.io.netty.channel.nio.NioEventLoopGroup;
 import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import com.couchbase.client.core.deps.io.netty.util.concurrent.DefaultThreadFactory;
 import com.couchbase.client.core.env.IoConfig;
-import com.couchbase.client.core.env.IoEnvironment;
 import com.couchbase.client.core.env.SecurityConfig;
 import com.couchbase.client.core.env.TimeoutConfig;
 import com.couchbase.client.java.Bucket;
@@ -38,11 +35,9 @@ import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.nio.channels.spi.SelectorProvider;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ThreadFactory;
 
 public class Couchbase3Operations implements Couchbase3Config {
 

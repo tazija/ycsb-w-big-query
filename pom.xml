@@ -84,7 +84,7 @@ LICENSE file.
     <cloudspanner.version>0.24.0-beta</cloudspanner.version>
     <couchbase.version>1.4.10</couchbase.version>
     <couchbase2.version>2.3.1</couchbase2.version>
-    <couchbase3.version>3.0.8</couchbase3.version>
+    <couchbase3.version>3.0.5</couchbase3.version>
     <elasticsearch5-version>5.5.1</elasticsearch5-version>
     <geode.version>1.2.0</geode.version>
     <googlebigtable.version>1.3.0</googlebigtable.version>
