@@ -13,7 +13,6 @@ public interface Couchbase3Config {
   String ADHOC = "couchbase.adhoc";
   String MAX_PARALLELISM = "couchbase.maxParallelism";
   String WAIT_UNTIL_READY = "couchbase.waitUntilReady";
-  String EVENT_LOOP_THREAD_COUNT = "couchbase.eventLoopThreadCount";
 
   String DEFAULT_HOST = "127.0.0.1";
   String DEFAULT_BUCKET = "default";
@@ -26,11 +25,4 @@ public interface Couchbase3Config {
   String DEFAULT_MAX_PARALLELISM = null;
   String DEFAULT_WAIT_UNTIL_READY = "PT300S";
   String DEFAULT_TIMEOUT = "PT60S";
-
-  static int getEventLoopThreadCount() {
-    int cores = Runtime.getRuntime().availableProcessors() / 2;
-    cores = Math.max(cores, 2);
-    cores = Math.min(cores, 8);
-    return cores;
-  }
 }

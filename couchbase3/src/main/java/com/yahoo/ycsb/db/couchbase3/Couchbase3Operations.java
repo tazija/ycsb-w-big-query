@@ -66,7 +66,6 @@ public class Couchbase3Operations implements Couchbase3Config {
   private final Duration documentExpiry;
   private final boolean adhoc;
   private final Integer maxParallelism;
-  private final int eventLoopThreadCount;
 
   public Couchbase3Operations(Properties properties) {
     host = properties.getProperty(HOST, DEFAULT_HOST);
@@ -80,11 +79,8 @@ public class Couchbase3Operations implements Couchbase3Config {
     adhoc = parseBoolean(properties.getProperty(ADHOC, DEFAULT_ADHOC));
     maxParallelism = ofNullable(properties.getProperty(MAX_PARALLELISM, DEFAULT_MAX_PARALLELISM))
         .map(Integer::parseInt).orElse(null);
-    eventLoopThreadCount = parseInt(properties.getProperty(EVENT_LOOP_THREAD_COUNT, Integer.toString(
-        Couchbase3Config.getEventLoopThreadCount())));
 
     ClusterEnvironment environment = ClusterEnvironment.builder()
-        .ioEnvironment(createIoEnvironment())
         .securityConfig(createSecurityConfig())
         .ioConfig(createIoConfig())
         .timeoutConfig(createTimeoutConfig())
@@ -104,14 +100,6 @@ public class Couchbase3Operations implements Couchbase3Config {
 
     kvTimeout = environment.timeoutConfig().kvTimeout();
     collection = bucket.defaultCollection();
-  }
-
-  private IoEnvironment.Builder createIoEnvironment() {
-    ThreadFactory threadFactory = new DefaultThreadFactory("couchbase3", true);
-    return IoEnvironment.builder()
-        .eventLoopThreadCount(eventLoopThreadCount)
-        .queryEventLoopGroup(new NioEventLoopGroup(
-            eventLoopThreadCount, threadFactory, SelectorProvider.provider()));
   }
 
   protected SecurityConfig.Builder createSecurityConfig() {

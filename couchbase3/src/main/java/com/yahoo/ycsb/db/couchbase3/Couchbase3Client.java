@@ -157,6 +157,9 @@ public class Couchbase3Client extends DB {
     }
   }
 
+  /**
+   * CREATE PRIMARY INDEX ON `bucket` USING GSI;
+   */
   @Override
   public Status scan(String table, String startKey, int docCount,
                      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
