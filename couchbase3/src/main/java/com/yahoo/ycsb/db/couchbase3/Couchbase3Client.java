@@ -198,8 +198,8 @@ public class Couchbase3Client extends DB {
         query.append(fields(fields, true));
       }
       query.append(" FROM `").append(getBucketName()).append("`");
-      query.append(" WHERE ").append(filterField).append(" = '$1'");
-      query.append(" OFFSET $2 LIMIT $3");
+      query.append(" WHERE ").append(filterField).append(" = ?");
+      query.append(" OFFSET ? LIMIT ?");
       JsonArray parameters = JsonArray.from(filterValue, offset, recordCount);
       query(query.toString(), parameters, result, object -> object);
       return Status.OK;
@@ -226,8 +226,8 @@ public class Couchbase3Client extends DB {
           "c2." + filterField1, "o2." + filterField2, "SUM(o2.sale_price) as sale_price"), false));
       query.append(" FROM `").append(getBucketName()).append("` c2");
       query.append(" INNER JOIN `").append(getBucketName()).append("` o2");
-      query.append(" ON KEYS c2.order_list WHERE c2.").append(filterField1).append(" = '$1'");
-      query.append(" AND o2.").append(filterField2).append(" = '$2'");
+      query.append(" ON KEYS c2.order_list WHERE c2.").append(filterField1).append(" = ?");
+      query.append(" AND o2.").append(filterField2).append(" = ?");
       query.append(" GROUP BY ").append(fields(ImmutableSet.of("c2." + filterField1, "o2." + filterField2), false));
       query.append(" ORDER BY SUM(o2.sale_price)");
       query(query.toString(), JsonArray.from(filterValue1, filterValue2), result, object -> object);
