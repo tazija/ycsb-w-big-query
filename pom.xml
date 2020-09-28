@@ -131,7 +131,7 @@ LICENSE file.
     <!--<module>cassandra</module>-->
     <!--<module>cloudspanner</module>-->
     <!--<module>couchbase</module>-->
-    <module>couchbase2</module>
+    <!--<module>couchbase2</module>-->
     <module>couchbase3</module>
     <!--<module>dynamodb</module>-->
     <!--<module>elasticsearch</module>-->
