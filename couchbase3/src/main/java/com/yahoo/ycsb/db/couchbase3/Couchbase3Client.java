@@ -163,19 +163,10 @@ public class Couchbase3Client extends DB {
     String docId = getId(table, startKey);
     try {
       StringBuilder query = new StringBuilder("SELECT ");
-      // if no fields to fetch specified select indexed field only
-      boolean rawId;
-      if (fields == null || fields.isEmpty()) {
-        query.append("RAW meta().id");
-        rawId = true;
-      } else {
-        query.append(fields(fields, true));
-        rawId = false;
-      }
-      query.append(" FROM `").append(getBucketName()).append("`");
+      query.append("RAW meta().id").append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE meta().id >= '$1' LIMIT $2");
       JsonArray parameters = JsonArray.from(docId, docCount);
-      query(query.toString(), rawId, parameters, result, object -> object);
+      query(query.toString(), true, parameters, result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("scan() failed start docId {} docCount {}", docId, docCount, exception);
@@ -195,20 +186,11 @@ public class Couchbase3Client extends DB {
                        Vector<HashMap<String, ByteIterator>> result) {
     try {
       StringBuilder query = new StringBuilder("SELECT ");
-      // if no fields to fetch specified select indexed field only
-      boolean rawId;
-      if (fields == null || fields.isEmpty()) {
-        query.append("RAW meta().id");
-        rawId = true;
-      } else {
-        query.append(fields(fields, true));
-        rawId = false;
-      }
-      query.append(" FROM `").append(getBucketName()).append("`");
+      query.append("RAW meta().id").append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE ").append(filterField).append(" = ?");
       query.append(" OFFSET ? LIMIT ?");
       JsonArray parameters = JsonArray.from(filterValue, offset, docCount);
-      query(query.toString(), rawId, parameters, result, object -> object);
+      query(query.toString(), true, parameters, result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("query1() failed filterField {} filterField {} offset {} docCount {}",
@@ -258,12 +240,12 @@ public class Couchbase3Client extends DB {
   }
 
   private void query(String query,
-                     boolean rawId,
+                     boolean rawIdOnly,
                      JsonArray parameters,
                      Vector<HashMap<String, ByteIterator>> result,
                      Function<JsonObject, JsonObject> resultMapper) {
     QueryResult queryResult = operations.query(query, parameters);
-    if (rawId) {
+    if (rawIdOnly) {
       List<String> rows = queryResult.rowsAs(String.class);
       result.addAll(rows.stream().map(id -> {
         HashMap<String, ByteIterator> map = new HashMap<>();
