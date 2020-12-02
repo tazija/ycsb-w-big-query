@@ -164,14 +164,14 @@ public class Couchbase3Client extends DB {
       StringBuilder query = new StringBuilder("SELECT ");
       // if no fields to fetch specified select indexed field only
       if (fields == null || fields.isEmpty()) {
-        query.append("meta().id");
+        query.append("RAW meta().id");
       } else {
         query.append(fields(fields, true));
       }
       query.append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE meta().id >= '$1' LIMIT $2");
       JsonArray parameters = JsonArray.from(docId, docCount);
-      query(query.toString(), parameters, result, object -> object.getObject(getBucketName()));
+      query(query.toString(), parameters, result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("scan() failed start docId {} docCount {}", docId, docCount, exception);
@@ -187,25 +187,25 @@ public class Couchbase3Client extends DB {
   @Override
   public Status query1(String table,
                        String filterField, String filterValue,
-                       int offset, int recordCount, Set<String> fields,
+                       int offset, int docCount, Set<String> fields,
                        Vector<HashMap<String, ByteIterator>> result) {
     try {
       StringBuilder query = new StringBuilder("SELECT ");
       // if no fields to fetch specified select indexed field only
       if (fields == null || fields.isEmpty()) {
-        query.append("meta().id");
+        query.append("RAW meta().id");
       } else {
         query.append(fields(fields, true));
       }
       query.append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE ").append(filterField).append(" = ?");
       query.append(" OFFSET ? LIMIT ?");
-      JsonArray parameters = JsonArray.from(filterValue, offset, recordCount);
+      JsonArray parameters = JsonArray.from(filterValue, offset, docCount);
       query(query.toString(), parameters, result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
-      LOGGER.error("query1() failed filterField {} filterField {} offset {} recordCount {}",
-          filterField, filterValue, offset, recordCount, exception);
+      LOGGER.error("query1() failed filterField {} filterField {} offset {} docCount {}",
+          filterField, filterValue, offset, docCount, exception);
       return Status.ERROR;
     }
   }
