@@ -11,6 +11,7 @@ import com.couchbase.client.java.codec.TypeRef;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.query.QueryIndexManager;
+import com.couchbase.client.java.query.QueryResult;
 import com.google.common.collect.ImmutableSet;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
@@ -163,15 +164,18 @@ public class Couchbase3Client extends DB {
     try {
       StringBuilder query = new StringBuilder("SELECT ");
       // if no fields to fetch specified select indexed field only
+      boolean rawId;
       if (fields == null || fields.isEmpty()) {
         query.append("RAW meta().id");
+        rawId = true;
       } else {
         query.append(fields(fields, true));
+        rawId = false;
       }
       query.append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE meta().id >= '$1' LIMIT $2");
       JsonArray parameters = JsonArray.from(docId, docCount);
-      query(query.toString(), parameters, result, object -> object);
+      query(query.toString(), rawId, parameters, result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("scan() failed start docId {} docCount {}", docId, docCount, exception);
@@ -192,16 +196,19 @@ public class Couchbase3Client extends DB {
     try {
       StringBuilder query = new StringBuilder("SELECT ");
       // if no fields to fetch specified select indexed field only
+      boolean rawId;
       if (fields == null || fields.isEmpty()) {
         query.append("RAW meta().id");
+        rawId = true;
       } else {
         query.append(fields(fields, true));
+        rawId = false;
       }
       query.append(" FROM `").append(getBucketName()).append("`");
       query.append(" WHERE ").append(filterField).append(" = ?");
       query.append(" OFFSET ? LIMIT ?");
       JsonArray parameters = JsonArray.from(filterValue, offset, docCount);
-      query(query.toString(), parameters, result, object -> object);
+      query(query.toString(), rawId, parameters, result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("query1() failed filterField {} filterField {} offset {} docCount {}",
@@ -230,7 +237,7 @@ public class Couchbase3Client extends DB {
       query.append(" AND o2.").append(filterField2).append(" = ?");
       query.append(" GROUP BY ").append(fields(ImmutableSet.of("c2." + filterField1, "o2." + filterField2), false));
       query.append(" ORDER BY SUM(o2.sale_price)");
-      query(query.toString(), JsonArray.from(filterValue1, filterValue2), result, object -> object);
+      query(query.toString(), false, JsonArray.from(filterValue1, filterValue2), result, object -> object);
       return Status.OK;
     } catch (Exception exception) {
       LOGGER.error("query2() failed filterValue1 {} filterValue2 {}", filterValue1, filterValue2, exception);
@@ -251,22 +258,33 @@ public class Couchbase3Client extends DB {
   }
 
   private void query(String query,
+                     boolean rawId,
                      JsonArray parameters,
                      Vector<HashMap<String, ByteIterator>> result,
                      Function<JsonObject, JsonObject> resultMapper) {
-    List<JsonObject> rows = operations.query(query, parameters).rowsAsObject();
-    result.addAll(
-        rows.stream()
-            .map(resultMapper)
-            .filter(Objects::nonNull)
-            .map(object -> object.toMap().entrySet().stream()
-                .collect(toMap(
-                    Map.Entry::getKey,
-                    entry -> (ByteIterator) new StringByteIterator(entry.getValue().toString()),
-                    (value1, value2) -> value1,
-                    HashMap::new)))
-            .collect(toList())
-    );
+    QueryResult queryResult = operations.query(query, parameters);
+    if (rawId) {
+      List<String> rows = queryResult.rowsAs(String.class);
+      result.addAll(rows.stream().map(id -> {
+        HashMap<String, ByteIterator> map = new HashMap<>();
+        map.put("id", new StringByteIterator(id));
+        return map;
+      }).collect(toList()));
+    } else {
+      List<JsonObject> rows = queryResult.rowsAs(JsonObject.class);
+      result.addAll(
+          rows.stream()
+              .map(resultMapper)
+              .filter(Objects::nonNull)
+              .map(object -> object.toMap().entrySet().stream()
+                  .collect(toMap(
+                      Map.Entry::getKey,
+                      entry -> (ByteIterator) new StringByteIterator(entry.getValue().toString()),
+                      (value1, value2) -> value1,
+                      HashMap::new)))
+              .collect(toList())
+      );
+    }
   }
 
   private static String fields(Set<String> fields, boolean quote) {
